@@ -19,11 +19,39 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    const { modelVersion, input, predictionId } = await req.json();
+    const requestData = await req.json();
+
+    // If checkApiKey is true, validate the API key by making a simple API call
+    if (requestData.checkApiKey) {
+      try {
+        const response = await fetch("https://api.replicate.com/v1/models", {
+          headers: {
+            Authorization: `Token ${REPLICATE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Invalid API key or API connection issue");
+        }
+
+        return new Response(JSON.stringify({ valid: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        return new Response(
+          JSON.stringify({ valid: false, error: error.message }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
 
     // If predictionId is provided, check the status of that prediction
-    if (predictionId) {
-      const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+    if (requestData.predictionId) {
+      const response = await fetch(`https://api.replicate.com/v1/predictions/${requestData.predictionId}`, {
         headers: {
           Authorization: `Token ${REPLICATE_API_KEY}`,
           "Content-Type": "application/json",
@@ -42,6 +70,8 @@ serve(async (req) => {
     }
 
     // Otherwise, create a new prediction
+    const { modelVersion, input } = requestData;
+    
     if (!modelVersion) {
       throw new Error("Model version is required");
     }
