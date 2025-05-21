@@ -13,6 +13,7 @@ export const createVideoPrediction = async (
   modelVersion: string
 ): Promise<Video> => {
   try {
+    // Validate required parameters
     if (!parameters.prompt || parameters.prompt.trim() === '') {
       throw new Error("Please provide a prompt for the video generation");
     }
@@ -33,6 +34,7 @@ export const createVideoPrediction = async (
     console.log("Calling Replicate API with:", {
       modelId,
       modelVersion,
+      formattedInputs,
       promptLength: parameters.prompt?.length || 0,
       hasImage: !!parameters.image
     });

@@ -13,16 +13,27 @@ export const lumaFormatter: ModelFormatter = {
     }
     
     if (parameters.image_url) {
-      inputParams.image = parameters.image_url;
+      inputParams.start_image_url = parameters.image_url;
+    }
+    
+    // Add duration parameter (seconds)
+    if (parameters.duration) inputParams.duration = parameters.duration;
+    
+    // Add aspect_ratio parameter
+    if (parameters.aspect_ratio) inputParams.aspect_ratio = parameters.aspect_ratio;
+    
+    // Add specific camera concepts if provided
+    if (parameters.model_specific?.concepts && Array.isArray(parameters.model_specific.concepts)) {
+      inputParams.concepts = parameters.model_specific.concepts;
+    }
+    
+    // Add loop parameter if provided
+    if (parameters.model_specific?.loop !== undefined) {
+      inputParams.loop = parameters.model_specific.loop;
     }
     
     if (parameters.fps) inputParams.fps = parameters.fps;
-    if (parameters.num_frames) inputParams.num_frames = parameters.num_frames;
     if (parameters.seed && !parameters.use_randomized_seed) inputParams.seed = parameters.seed;
-    
-    if (parameters.model_specific?.style) {
-      inputParams.style = parameters.model_specific.style;
-    }
     
     return inputParams;
   }

@@ -12,22 +12,23 @@ export const veoFormatter: ModelFormatter = {
       inputParams.negative_prompt = parameters.negative_prompt;
     }
     
+    // Image parameter for Veo is simply 'image'
     if (parameters.image_url) {
       inputParams.image = parameters.image_url;
     }
     
+    // Add duration parameter (seconds)
+    if (parameters.duration) {
+      inputParams.duration = parameters.duration;
+    }
+    
+    // Add aspect_ratio parameter directly
     if (parameters.aspect_ratio) {
-      const [width, height] = parameters.aspect_ratio.split(':').map(Number);
-      if (width && height) {
-        const ratio = width / height;
-        if (ratio > 1) { // Landscape
-          inputParams.width = 768;
-          inputParams.height = Math.floor(768 / ratio);
-        } else { // Portrait or square
-          inputParams.height = 768;
-          inputParams.width = Math.floor(768 * ratio);
-        }
-      }
+      inputParams.aspect_ratio = parameters.aspect_ratio;
+    } else {
+      // Only calculate width/height if aspect_ratio isn't provided
+      if (parameters.width) inputParams.width = parameters.width;
+      if (parameters.height) inputParams.height = parameters.height;
     }
     
     if (parameters.cfg_scale) inputParams.cfg_scale = parameters.cfg_scale;

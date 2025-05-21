@@ -3,6 +3,13 @@ import { ModelParameterDefinition } from '@/lib/replicateTypes';
 
 export const googleVeoParameters: ModelParameterDefinition[] = [
   {
+    name: 'prompt',
+    type: 'text',
+    label: 'Prompt',
+    description: 'Text prompt for video generation',
+    isAdvanced: false
+  },
+  {
     name: 'negative_prompt',
     type: 'text',
     label: 'Negative Prompt',
@@ -13,13 +20,35 @@ export const googleVeoParameters: ModelParameterDefinition[] = [
     name: 'aspect_ratio',
     type: 'select',
     label: 'Aspect Ratio',
-    defaultValue: '1:1',
+    defaultValue: '16:9',
     options: [
-      { value: '1:1', label: '1:1 (Square)' },
       { value: '16:9', label: '16:9 (Landscape)' },
-      { value: '9:16', label: '9:16 (Portrait)' }
+      { value: '9:16', label: '9:16 (Portrait)' },
+      { value: '1:1', label: '1:1 (Square)' }
     ],
-    description: 'The aspect ratio of the video'
+    description: 'Video aspect ratio',
+    isAdvanced: false
+  },
+  {
+    name: 'duration',
+    type: 'select',
+    label: 'Duration',
+    defaultValue: 5,
+    options: [
+      { value: 2, label: '2 seconds' },
+      { value: 3, label: '3 seconds' },
+      { value: 4, label: '4 seconds' },
+      { value: 5, label: '5 seconds' }
+    ],
+    description: 'Video duration in seconds',
+    isAdvanced: false
+  },
+  {
+    name: 'image',
+    type: 'image',
+    label: 'Reference Image',
+    description: 'Input image to guide video generation',
+    isAdvanced: false
   },
   {
     name: 'cfg_scale',
@@ -36,25 +65,7 @@ export const googleVeoParameters: ModelParameterDefinition[] = [
     name: 'seed',
     type: 'number',
     label: 'Seed',
-    description: 'Random seed for reproducibility. Leave blank for random',
+    description: 'Random seed for reproducibility. Omit for random generation.',
     isAdvanced: true
-  },
-  {
-    name: 'steps',
-    type: 'slider',
-    label: 'Steps',
-    defaultValue: 30,
-    min: 10,
-    max: 50,
-    step: 1,
-    description: 'Number of denoising steps',
-    isAdvanced: true
-  },
-  {
-    name: 'image',
-    type: 'image',
-    label: 'Reference Image',
-    description: 'Optional image to guide the video generation',
-    isAdvanced: false
   }
 ];

@@ -3,41 +3,37 @@ import { ModelParameterDefinition } from '@/lib/replicateTypes';
 
 export const kwaivgiKlingParameters: ModelParameterDefinition[] = [
   {
+    name: 'prompt',
+    type: 'text',
+    label: 'Prompt',
+    description: 'Text prompt for video generation',
+    isAdvanced: false
+  },
+  {
     name: 'negative_prompt',
     type: 'text',
     label: 'Negative Prompt',
-    description: 'What should not be in the video',
+    description: 'Things you do not want to see in the video',
     isAdvanced: true
   },
   {
-    name: 'width',
+    name: 'aspect_ratio',
     type: 'select',
-    label: 'Width',
-    defaultValue: 512,
+    label: 'Aspect Ratio',
+    defaultValue: '16:9',
     options: [
-      { value: 512, label: '512px' },
-      { value: 768, label: '768px' },
-      { value: 1024, label: '1024px' }
+      { value: '16:9', label: '16:9 (Landscape)' },
+      { value: '9:16', label: '9:16 (Portrait)' },
+      { value: '1:1', label: '1:1 (Square)' }
     ],
-    description: 'Width of the video'
-  },
-  {
-    name: 'height',
-    type: 'select',
-    label: 'Height',
-    defaultValue: 512,
-    options: [
-      { value: 512, label: '512px' },
-      { value: 768, label: '768px' },
-      { value: 1024, label: '1024px' }
-    ],
-    description: 'Height of the video'
+    description: 'Aspect ratio of the video. Ignored if start_image is provided.',
+    isAdvanced: false
   },
   {
     name: 'image',
     type: 'image',
-    label: 'Reference Image',
-    description: 'Optional image to guide the video generation',
+    label: 'Start Image',
+    description: 'First frame of the video (optional)',
     isAdvanced: false
   },
   {
@@ -45,10 +41,10 @@ export const kwaivgiKlingParameters: ModelParameterDefinition[] = [
     type: 'slider',
     label: 'CFG Scale',
     defaultValue: 8,
-    min: 1,
-    max: 15,
-    step: 0.5,
-    description: 'How closely the model should follow the prompt',
+    min: 0,
+    max: 1,
+    step: 0.1,
+    description: 'Flexibility in video generation; The higher the value, the lower the model\'s flexibility',
     isAdvanced: true
   },
   {
@@ -79,7 +75,7 @@ export const kwaivgiKlingParameters: ModelParameterDefinition[] = [
     name: 'seed',
     type: 'number',
     label: 'Seed',
-    description: 'Random seed for reproducibility. Leave blank for random',
+    description: 'Random seed for reproducibility. Omit for random generation.',
     isAdvanced: true
   },
   {

@@ -3,6 +3,13 @@ import { ModelParameterDefinition } from '@/lib/replicateTypes';
 
 export const lumaRayParameters: ModelParameterDefinition[] = [
   {
+    name: 'prompt',
+    type: 'text',
+    label: 'Prompt',
+    description: 'Text prompt for video generation',
+    isAdvanced: false
+  },
+  {
     name: 'negative_prompt',
     type: 'text',
     label: 'Negative Prompt',
@@ -10,38 +17,51 @@ export const lumaRayParameters: ModelParameterDefinition[] = [
     isAdvanced: true
   },
   {
-    name: 'model_specific.style',
+    name: 'duration',
     type: 'select',
-    label: 'Style',
-    defaultValue: 'cinematic',
+    label: 'Duration',
+    defaultValue: 5,
     options: [
-      { value: 'cinematic', label: 'Cinematic' },
-      { value: 'vibrant', label: 'Vibrant' },
-      { value: 'detailed', label: 'Detailed' }
+      { value: 5, label: '5 seconds' },
+      { value: 9, label: '9 seconds' }
     ],
-    description: 'Style of the video'
+    description: 'Duration of the video in seconds',
+    isAdvanced: false
   },
   {
-    name: 'fps',
+    name: 'aspect_ratio',
     type: 'select',
-    label: 'FPS',
-    defaultValue: 24,
+    label: 'Aspect Ratio',
+    defaultValue: '16:9',
     options: [
-      { value: 24, label: '24 FPS' },
-      { value: 30, label: '30 FPS' }
+      { value: '16:9', label: '16:9 (Landscape)' }
     ],
-    description: 'Frames per second',
-    isAdvanced: true
+    description: 'Aspect ratio of the generated video',
+    isAdvanced: false
   },
   {
-    name: 'num_frames',
-    type: 'slider',
-    label: 'Number of Frames',
-    defaultValue: 48,
-    min: 24,
-    max: 96,
-    step: 8,
-    description: 'Number of frames in the video',
+    name: 'model_specific.concepts',
+    type: 'select',
+    label: 'Camera Concept',
+    defaultValue: 'static',
+    options: [
+      { value: 'static', label: 'Static' },
+      { value: 'pan_left', label: 'Pan Left' },
+      { value: 'pan_right', label: 'Pan Right' },
+      { value: 'zoom_in', label: 'Zoom In' },
+      { value: 'zoom_out', label: 'Zoom Out' },
+      { value: 'tilt_up', label: 'Tilt Up' },
+      { value: 'tilt_down', label: 'Tilt Down' }
+    ],
+    description: 'Camera concept to apply to the video',
+    isAdvanced: false
+  },
+  {
+    name: 'model_specific.loop',
+    type: 'checkbox',
+    label: 'Loop Video',
+    defaultValue: false,
+    description: 'Whether the video should loop with smooth transitions',
     isAdvanced: true
   },
   {
