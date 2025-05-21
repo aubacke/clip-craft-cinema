@@ -19,11 +19,21 @@ export const createVideoPrediction = async (
     // Format the parameters based on the model
     const formattedInputs = formatter.formatInputs(parameters);
     
+    console.log("Calling Replicate API with:", {
+      modelVersion,
+      formattedInputs,
+      hasImage: !!parameters.image
+    });
+    
     // Call the API with the formatted inputs and optional image
     const data = await callReplicateModel(modelVersion, formattedInputs, parameters.image);
     
+    if (!data || !data.id) {
+      throw new Error("Invalid response from Replicate API");
+    }
+    
     return {
-      id: data.id || uuidv4(),
+      id: data.id,
       prompt: parameters.prompt,
       modelId,
       status: 'processing',
@@ -31,7 +41,6 @@ export const createVideoPrediction = async (
     };
   } catch (error) {
     console.error("Error creating prediction:", error);
-    toast.error("Failed to start video generation");
     throw error;
   }
 };
@@ -50,7 +59,7 @@ export const checkVideoPredictionStatus = async (predictionId: string): Promise<
     
     return {
       id: predictionId,
-      prompt: data.input.prompt,
+      prompt: data.input?.prompt || 'Unknown prompt',
       modelId: data.version ? `${data.version.split('/')[0]}/${data.version.split('/')[1]}` : '',
       status,
       url: data.output ? Array.isArray(data.output) ? data.output[0] : data.output : undefined,

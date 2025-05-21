@@ -19,12 +19,20 @@ export async function callReplicateModel(
       input.image = imageUrl;
     }
     
+    console.log("Calling Replicate API with version:", modelVersion);
+    console.log("Input:", JSON.stringify(input));
+    
     const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
       body: { modelVersion, input }
     });
 
     if (error) {
-      throw new Error(error.message);
+      console.error("Function invoke error:", error);
+      throw new Error(error.message || "Error calling Replicate API");
+    }
+
+    if (!data) {
+      throw new Error("No data returned from Replicate API");
     }
 
     return data as ReplicateResponse;
@@ -53,12 +61,19 @@ async function uploadAndGetImageUrl(file: File): Promise<string> {
 
 export async function checkPredictionStatus(predictionId: string): Promise<ReplicateResponse> {
   try {
+    console.log("Checking status for prediction:", predictionId);
+    
     const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
       body: { predictionId }
     });
 
     if (error) {
-      throw new Error(error.message);
+      console.error("Function invoke error:", error);
+      throw new Error(error.message || "Error checking prediction status");
+    }
+
+    if (!data) {
+      throw new Error("No data returned when checking prediction status");
     }
 
     return data as ReplicateResponse;

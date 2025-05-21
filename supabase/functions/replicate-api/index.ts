@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -20,7 +19,53 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    const requestData = await req.json();
+    let requestData;
+    try {
+      requestData = await req.json();
+    } catch (e) {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
+    }
+    
+    console.log("Request data:", JSON.stringify(requestData));
+
+    // If predictionId is provided, check the status of that prediction
+    if (requestData.predictionId) {
+      try {
+        const response = await fetch(`https://api.replicate.com/v1/predictions/${requestData.predictionId}`, {
+          headers: {
+            Authorization: `Token ${REPLICATE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Replicate API error response:", errorText);
+          
+          return new Response(
+            JSON.stringify({ 
+              error: `Error checking prediction status: ${response.statusText}`, 
+              details: errorText 
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: response.status }
+          );
+        }
+
+        const data = await response.json();
+        return new Response(JSON.stringify(data), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      } catch (error) {
+        console.error("Error checking prediction status:", error);
+        return new Response(
+          JSON.stringify({ error: `Error checking prediction: ${error.message}` }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
+      }
+    }
 
     // If fetchModels is true, get available models from Replicate
     if (requestData.fetchModels) {
@@ -59,7 +104,7 @@ serve(async (req) => {
 
         if (!response.ok) {
           const errorData = await response.text();
-          console.error("Replicate API error:", response.status, errorData);
+          console.error("Replicate API error response:", response.status, errorData);
           throw new Error(`Failed to fetch models: ${response.statusText}, Details: ${errorData}`);
         }
 
@@ -170,31 +215,21 @@ serve(async (req) => {
       }
     }
 
-    // If predictionId is provided, check the status of that prediction
-    if (requestData.predictionId) {
-      const response = await fetch(`https://api.replicate.com/v1/predictions/${requestData.predictionId}`, {
-        headers: {
-          Authorization: `Token ${REPLICATE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Failed to check prediction status");
-      }
-
-      const data = await response.json();
-      return new Response(JSON.stringify(data), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // Otherwise, create a new prediction
+    if (!requestData.modelVersion) {
+      return new Response(
+        JSON.stringify({ error: "Model version is required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
-    // Otherwise, create a new prediction
     const { modelVersion, input } = requestData;
     
-    if (!modelVersion) {
-      throw new Error("Model version is required");
+    if (!input || typeof input !== "object") {
+      return new Response(
+        JSON.stringify({ error: "Input parameters are required" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 }
+      );
     }
 
     // Process image if it's included as base64
@@ -202,8 +237,8 @@ serve(async (req) => {
     
     // If input contains a base64 image, upload it to a temporary URL
     if (input.image && typeof input.image === 'string' && 
-        input.image.startsWith('data:image') || 
-        (input.image.length > 1000 && !input.image.startsWith('http'))) {
+        (input.image.startsWith('data:image') || 
+        (input.image.length > 1000 && !input.image.startsWith('http')))) {
       
       try {
         console.log("Processing base64 image");
@@ -212,7 +247,10 @@ serve(async (req) => {
         console.log("Uploaded image to temp URL:", tempUrl);
       } catch (uploadError) {
         console.error("Error uploading image:", uploadError);
-        throw new Error("Failed to process the uploaded image");
+        return new Response(
+          JSON.stringify({ error: "Failed to process the uploaded image" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+        );
       }
     }
 
@@ -220,30 +258,45 @@ serve(async (req) => {
     console.log("Input parameters:", JSON.stringify(processedInput));
 
     // Call the Replicate API
-    const response = await fetch("https://api.replicate.com/v1/predictions", {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${REPLICATE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        version: modelVersion,
-        input: processedInput,
-      }),
-    });
+    try {
+      const response = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: {
+          Authorization: `Token ${REPLICATE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          version: modelVersion,
+          input: processedInput,
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error("Replicate API error response:", error);
-      throw new Error(error.detail || "Failed to call Replicate API");
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error("Replicate API error response:", errorData);
+        
+        return new Response(
+          JSON.stringify({ 
+            error: `Replicate API error: ${response.statusText}`, 
+            details: errorData 
+          }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: response.status }
+        );
+      }
+
+      const data = await response.json();
+      console.log("Prediction created successfully:", data.id);
+
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (apiError) {
+      console.error("Error calling Replicate API:", apiError);
+      return new Response(
+        JSON.stringify({ error: `Failed to call Replicate API: ${apiError.message}` }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 }
+      );
     }
-
-    const data = await response.json();
-    console.log("Prediction created successfully:", data.id);
-
-    return new Response(JSON.stringify(data), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
   } catch (error) {
     console.error("Error in replicate-api function:", error);
     
@@ -258,7 +311,6 @@ serve(async (req) => {
 });
 
 // Helper function to upload a base64 image to a temporary service
-// This is needed because some Replicate models only accept URLs, not base64 data
 async function uploadBase64ImageToTemp(base64Data: string): Promise<string> {
   // Using ImgBB as a temporary image host
   // In a production app, you'd use a more reliable service or your own storage
@@ -283,5 +335,9 @@ async function uploadBase64ImageToTemp(base64Data: string): Promise<string> {
   }
   
   const data = await response.json();
+  if (!data.data || !data.data.url) {
+    throw new Error('Invalid response from image upload service');
+  }
+  
   return data.data.url;
 }
