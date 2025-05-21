@@ -5,17 +5,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { VIDEO_MODELS, DEFAULT_MODEL_ID, SAMPLE_PROMPTS } from '@/lib/constants';
-import { createVideoPrediction, getApiKey } from '@/services/videoApi';
+import { createVideoPrediction } from '@/services/videoApi';
 import { toast } from 'sonner';
 import { Video } from '@/lib/types';
+import { SettingsButton } from './SettingsButton';
 
 interface VideoGeneratorProps {
   onVideoCreated: (video: Video) => void;
-  apiKey: string;
-  setApiKey: (key: string) => void;
 }
 
-const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated, apiKey, setApiKey }) => {
+const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
   const [prompt, setPrompt] = useState('');
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -23,11 +22,6 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated, apiKey,
   const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
   
   const handleGenerate = async () => {
-    if (!apiKey) {
-      toast.error("Please enter your Replicate API key first");
-      return;
-    }
-    
     if (!prompt.trim()) {
       toast.error("Please enter a prompt");
       return;
@@ -57,27 +51,10 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated, apiKey,
   return (
     <Card className="glass-card animate-fade-in">
       <CardContent className="p-6">
-        <h2 className="text-2xl font-bold mb-4">Create New Video</h2>
-        
-        {!getApiKey() && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">
-              Replicate API Key
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your Replicate API key"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Get your API key from <a href="https://replicate.com/account" target="_blank" rel="noopener noreferrer" className="text-primary underline">replicate.com/account</a>
-            </p>
-          </div>
-        )}
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold">Create New Video</h2>
+          <SettingsButton />
+        </div>
         
         <div className="mb-4">
           <div className="flex justify-between items-center mb-1">

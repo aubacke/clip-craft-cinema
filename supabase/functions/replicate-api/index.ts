@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -20,7 +19,32 @@ serve(async (req) => {
     }
 
     // Parse the request body
-    const { modelVersion, input } = await req.json();
+    const { modelVersion, input, predictionId } = await req.json();
+
+    // If predictionId is provided, check the status of that prediction
+    if (predictionId) {
+      const response = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+        headers: {
+          Authorization: `Token ${REPLICATE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Failed to check prediction status");
+      }
+
+      const data = await response.json();
+      return new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Otherwise, create a new prediction
+    if (!modelVersion) {
+      throw new Error("Model version is required");
+    }
 
     // Call the Replicate API
     const response = await fetch("https://api.replicate.com/v1/predictions", {

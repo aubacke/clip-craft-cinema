@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { ReplicateSettings } from "@/lib/replicateTypes";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -16,32 +17,37 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const [settings, setSettings] = useState<ReplicateSettings>({
     apiKey: null
   });
-  const [inputApiKey, setInputApiKey] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [apiKeyStatus, setApiKeyStatus] = useState<'unchecked' | 'valid' | 'invalid'>('unchecked');
 
   useEffect(() => {
-    // Load settings from local storage
-    const storedApiKey = localStorage.getItem("replicateApiKey");
-    if (storedApiKey) {
-      setSettings({ apiKey: storedApiKey });
-      setInputApiKey("********"); // Don't show actual API key, just placeholders
+    if (open) {
+      checkApiKey();
     }
   }, [open]);
 
-  const handleSaveApiKey = () => {
-    // Don't overwrite with placeholder
-    if (inputApiKey && inputApiKey !== "********") {
-      localStorage.setItem("replicateApiKey", inputApiKey);
-      setSettings({ apiKey: inputApiKey });
-      toast.success("Replicate API key saved successfully");
+  const checkApiKey = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("replicate-api", {
+        body: { checkApiKey: true }
+      });
+      
+      if (error) {
+        setApiKeyStatus('invalid');
+        setSettings({ apiKey: null });
+      } else {
+        setApiKeyStatus('valid');
+        setSettings({ apiKey: 'configured' });
+      }
+    } catch (error) {
+      console.error("Error checking API key:", error);
+      setApiKeyStatus('invalid');
+      setSettings({ apiKey: null });
     }
-    onOpenChange(false);
   };
 
-  const handleClearApiKey = () => {
-    localStorage.removeItem("replicateApiKey");
-    setSettings({ apiKey: null });
-    setInputApiKey("");
-    toast.info("Replicate API key removed");
+  const handleClose = () => {
+    onOpenChange(false);
   };
 
   return (
@@ -54,30 +60,35 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="apiKey" className="text-right col-span-1">
-              API Key
+          <div className="space-y-2">
+            <Label htmlFor="apiKey" className="text-sm font-medium">
+              Replicate API Key
             </Label>
-            <div className="col-span-3 flex gap-2">
-              <Input
-                id="apiKey"
-                type="password"
-                value={inputApiKey}
-                onChange={(e) => setInputApiKey(e.target.value)}
-                placeholder="Enter your Replicate API key"
-                className="flex-1"
-              />
-              {settings.apiKey && (
-                <Button variant="outline" size="icon" onClick={handleClearApiKey} title="Clear API key">
-                  <span className="sr-only">Clear</span>
-                  ✕
-                </Button>
-              )}
+            <div className="flex items-center space-x-2">
+              <div className="flex-1 p-2 border rounded-md bg-muted">
+                {apiKeyStatus === 'valid' ? (
+                  <div className="flex items-center text-green-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    API key configured in Supabase
+                  </div>
+                ) : (
+                  <div className="flex items-center text-orange-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    API key not configured
+                  </div>
+                )}
+              </div>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              The API key needs to be set in Supabase Edge Functions secrets.
+            </p>
           </div>
         </div>
         <div className="flex flex-col gap-2">
-          <Button onClick={handleSaveApiKey}>Save Changes</Button>
           <div className="text-xs text-muted-foreground mt-2">
             <a 
               href="https://replicate.com/account/api-tokens" 

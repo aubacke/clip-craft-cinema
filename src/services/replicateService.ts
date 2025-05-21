@@ -24,22 +24,19 @@ export async function callReplicateModel(
   }
 }
 
-export async function checkPredictionStatus(url: string): Promise<ReplicateResponse> {
-  const apiKey = localStorage.getItem('replicateApiKey');
-  
-  if (!apiKey) {
-    throw new Error("Replicate API key not found");
-  }
-  
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Token ${apiKey}`
+export async function checkPredictionStatus(predictionId: string): Promise<ReplicateResponse> {
+  try {
+    const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
+      body: { predictionId }
+    });
+
+    if (error) {
+      throw new Error(error.message);
     }
-  });
-  
-  if (!response.ok) {
-    throw new Error("Failed to check prediction status");
+
+    return data as ReplicateResponse;
+  } catch (error) {
+    console.error("Error checking prediction status:", error);
+    throw error;
   }
-  
-  return response.json();
 }
