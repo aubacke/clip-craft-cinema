@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ModelParameterDefinition, VideoGenerationParameters } from '@/lib/replicateTypes';
 import { Button } from '@/components/ui/button';
@@ -298,10 +297,14 @@ export const ModelParameters: React.FC<ModelParametersProps> = ({
     if (name.includes('.')) {
       // Handle nested parameters (e.g. model_specific.style)
       const [parent, child] = name.split('.');
+      
+      // Fix: Ensure model_specific exists before trying to spread it
+      const modelSpecific = parameters.model_specific || {};
+      
       onParameterChange({
         ...parameters,
         [parent]: {
-          ...parameters[parent as keyof VideoGenerationParameters],
+          ...modelSpecific,
           [child]: value
         }
       });
