@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { SAMPLE_PROMPTS, DEFAULT_MODEL_ID } from '@/lib/constants';
+import { SAMPLE_PROMPTS } from '@/lib/constants';
 import { createVideoPrediction } from '@/services/videoApi';
 import { toast } from 'sonner';
 import { Video } from '@/lib/types';
@@ -13,13 +13,21 @@ import { fetchReplicateModels, fetchModelDetails } from '@/services/replicateSer
 import { ReplicateModel } from '@/lib/replicateTypes';
 import { Loader2 } from 'lucide-react';
 
+// List of allowed models
+const ALLOWED_MODELS = [
+  "google/veo-2", 
+  "kwaivgi/kling-v2.0", 
+  "luma/ray-2-720p", 
+  "luma/ray-flash-2-720p"
+];
+
 interface VideoGeneratorProps {
   onVideoCreated: (video: Video) => void;
 }
 
 const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
   const [prompt, setPrompt] = useState('');
-  const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID);
+  const [selectedModelId, setSelectedModelId] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [models, setModels] = useState<ReplicateModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
@@ -35,7 +43,10 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
       try {
         setIsLoadingModels(true);
         setErrorMessage(null);
-        const data = await fetchReplicateModels({ filter: "video" });
+        const data = await fetchReplicateModels({ 
+          filter: "video",
+          allowList: ALLOWED_MODELS
+        });
         
         // Format models into our required format
         const formattedModels = data.results.map(model => {
@@ -51,6 +62,12 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
         });
         
         setModels(formattedModels);
+        
+        // Auto-select the first model if available
+        if (formattedModels.length > 0) {
+          const firstModelId = `${formattedModels[0].owner}/${formattedModels[0].name}`;
+          setSelectedModelId(firstModelId);
+        }
       } catch (error) {
         console.error("Error fetching models:", error);
         setErrorMessage("Failed to load models. Please check your API key in settings.");
@@ -159,6 +176,10 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
           ) : errorMessage ? (
             <div className="text-sm text-red-500">
               {errorMessage}
+            </div>
+          ) : models.length === 0 ? (
+            <div className="text-sm text-amber-500">
+              No models found. Please check your API key settings.
             </div>
           ) : (
             <Select 

@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -75,10 +76,19 @@ serve(async (req) => {
           });
         }
         
+        // Filter models if allowList is provided
+        let results = modelsData.results || [];
+        
+        if (requestData.allowList && Array.isArray(requestData.allowList) && requestData.allowList.length > 0) {
+          results = results.filter(model => {
+            const modelId = `${model.owner}/${model.name}`;
+            return requestData.allowList.includes(modelId);
+          });
+        }
+        
         // Format the response to match what the frontend expects
-        // Wrap the results array in an object with a 'results' property
         return new Response(JSON.stringify({
-          results: modelsData.results || [],
+          results: results,
           next: modelsData.next || null
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },

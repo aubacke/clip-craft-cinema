@@ -45,6 +45,7 @@ export async function fetchReplicateModels(options?: {
   filter?: "video";
   page?: number;
   pageSize?: number;
+  allowList?: string[];
 }): Promise<{ results: ReplicateModel[], next?: string }> {
   try {
     const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
@@ -52,7 +53,8 @@ export async function fetchReplicateModels(options?: {
         fetchModels: true,
         filter: options?.filter,
         page: options?.page,
-        pageSize: options?.pageSize 
+        pageSize: options?.pageSize,
+        allowList: options?.allowList
       }
     });
 
