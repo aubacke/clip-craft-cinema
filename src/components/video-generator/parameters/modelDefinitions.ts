@@ -93,6 +93,13 @@ export const MODEL_PARAMETERS: Record<string, ModelParameterDefinition[]> = {
       description: 'Height of the video'
     },
     {
+      name: 'image',
+      type: 'image',
+      label: 'Reference Image',
+      description: 'Optional image to guide the video generation',
+      isAdvanced: false
+    },
+    {
       name: 'cfg_scale',
       type: 'slider',
       label: 'CFG Scale',
