@@ -1,0 +1,2 @@
+
+export { VideoGeneratorCard } from './VideoGeneratorCard';
