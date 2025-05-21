@@ -73,6 +73,7 @@ export interface VideoGenerationParameters {
   use_randomized_seed?: boolean;
   steps?: number;
   model_specific?: Record<string, any>;
+  duration?: number;   // Adding the missing duration property
 }
 
 export interface ModelParameterDefinition {

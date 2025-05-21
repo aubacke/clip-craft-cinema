@@ -26,12 +26,13 @@ export interface Folder {
   isReferenceFolder?: boolean;
 }
 
-// Update the VideoGenerationParameters interface to include reference image properties
+// Update the VideoGenerationParameters interface to include duration
 export interface VideoGenerationParameters {
   prompt: string;
   image?: File | null;
   image_url?: string;
   referenceImageId?: string;
   referenceImageFolderId?: string;
+  duration?: number;  // Adding the duration property
   [key: string]: any; // Allow for additional model-specific parameters
 }
