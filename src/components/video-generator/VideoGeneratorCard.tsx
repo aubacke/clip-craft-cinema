@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VideoGenerationParameters } from '@/lib/types';
@@ -18,13 +17,14 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
   
   const handlePromptChange = (newPrompt: string) => {
     setPrompt(newPrompt);
+    // Update parameters.prompt to keep them in sync
     setParameters(prev => ({ ...prev, prompt: newPrompt }));
   };
   
   const handleParameterChange = (newParams: VideoGenerationParameters) => {
     setParameters(newParams);
     // Sync prompt state if it's changed via parameters
-    if (newParams.prompt && newParams.prompt !== prompt) {
+    if (newParams.prompt !== undefined && newParams.prompt !== prompt) {
       setPrompt(newParams.prompt);
     }
   };
