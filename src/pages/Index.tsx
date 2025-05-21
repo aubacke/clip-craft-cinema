@@ -9,7 +9,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { Video, Folder } from '@/lib/types';
 import { toast } from 'sonner';
 import {
-  setApiKey,
   saveVideoToLocalStorage,
   getVideosFromLocalStorage,
   deleteVideoFromLocalStorage,
@@ -26,7 +25,6 @@ const Index = () => {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [showGenerator, setShowGenerator] = useState(true);
-  const [apiKey, setRawApiKey] = useState('');
   
   // Load data from local storage
   useEffect(() => {
@@ -70,11 +68,6 @@ const Index = () => {
   }, [videos]);
   
   // Handlers
-  const handleSetApiKey = (key: string) => {
-    setRawApiKey(key);
-    setApiKey(key);
-  };
-  
   const handleVideoCreated = (video: Video) => {
     const newVideos = [...videos, video];
     setVideos(newVideos);
@@ -169,9 +162,7 @@ const Index = () => {
           {showGenerator ? (
             <div className="max-w-2xl mx-auto mb-8">
               <VideoGenerator 
-                onVideoCreated={handleVideoCreated} 
-                apiKey={apiKey}
-                setApiKey={handleSetApiKey}
+                onVideoCreated={handleVideoCreated}
               />
             </div>
           ) : (
