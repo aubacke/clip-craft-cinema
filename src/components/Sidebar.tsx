@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { FolderPlus, Plus, Image } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Folder } from '@/lib/types';
-import { VIDEO_MODELS } from '@/lib/constants';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -135,18 +134,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             ))}
           </div>
         )}
-        
-        <div className="mt-auto">
-          <h3 className="text-sm font-medium text-sidebar-foreground/70 mb-2">Available Models</h3>
-          <div className="space-y-1 text-xs text-sidebar-foreground/70">
-            {VIDEO_MODELS.map((model) => (
-              <div key={model.id} className="p-2 rounded-md bg-sidebar-accent">
-                <div className="font-medium">{model.name}</div>
-                <div className="text-xs opacity-70">{model.description}</div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );
