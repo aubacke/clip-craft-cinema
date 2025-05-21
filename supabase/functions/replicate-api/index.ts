@@ -25,10 +25,17 @@ serve(async (req) => {
     // If fetchModels is true, get available models from Replicate
     if (requestData.fetchModels) {
       try {
+        console.log("Fetching models with params:", JSON.stringify({
+          filter: requestData.filter,
+          allowList: requestData.allowList
+        }));
+        
         const query = new URLSearchParams();
         
-        // Add filter for video-related models if specified
-        if (requestData.filter === "video") {
+        // Only add filter for video-related models if specified AND we don't have an allowList
+        // This is the key change - we prioritize the allowList over the filter
+        if (requestData.filter === "video" && (!requestData.allowList || requestData.allowList.length === 0)) {
+          console.log("Using 'video' collection filter");
           query.append("collection", "video");
         }
         
@@ -41,6 +48,8 @@ serve(async (req) => {
         }
         
         const queryString = query.toString() ? `?${query.toString()}` : "";
+        console.log(`Making request to: https://api.replicate.com/v1/models${queryString}`);
+
         const response = await fetch(`https://api.replicate.com/v1/models${queryString}`, {
           headers: {
             Authorization: `Token ${REPLICATE_API_KEY}`,
@@ -49,10 +58,13 @@ serve(async (req) => {
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch models: ${response.statusText}`);
+          const errorData = await response.text();
+          console.error("Replicate API error:", response.status, errorData);
+          throw new Error(`Failed to fetch models: ${response.statusText}, Details: ${errorData}`);
         }
 
         const modelsData = await response.json();
+        console.log(`Received ${modelsData.results ? modelsData.results.length : 0} models before filtering`);
         
         // If a specific model ID was requested, fetch its versions too
         if (requestData.modelId) {
@@ -80,10 +92,35 @@ serve(async (req) => {
         let results = modelsData.results || [];
         
         if (requestData.allowList && Array.isArray(requestData.allowList) && requestData.allowList.length > 0) {
-          results = results.filter(model => {
-            const modelId = `${model.owner}/${model.name}`;
-            return requestData.allowList.includes(modelId);
-          });
+          console.log(`Filtering by allowList: ${requestData.allowList.join(', ')}`);
+          
+          // Direct filtering approach for the allowlisted models
+          const filteredResults = [];
+          
+          for (const modelId of requestData.allowList) {
+            try {
+              console.log(`Fetching specific model: ${modelId}`);
+              const modelResponse = await fetch(`https://api.replicate.com/v1/models/${modelId}`, {
+                headers: {
+                  Authorization: `Token ${REPLICATE_API_KEY}`,
+                  "Content-Type": "application/json",
+                },
+              });
+              
+              if (modelResponse.ok) {
+                const modelData = await modelResponse.json();
+                console.log(`Successfully fetched model: ${modelId}`);
+                filteredResults.push(modelData);
+              } else {
+                console.error(`Failed to fetch model ${modelId}: ${modelResponse.statusText}`);
+              }
+            } catch (err) {
+              console.error(`Error fetching model ${modelId}:`, err);
+            }
+          }
+          
+          results = filteredResults;
+          console.log(`Final filtered results count: ${results.length}`);
         }
         
         // Format the response to match what the frontend expects
@@ -94,6 +131,7 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (error) {
+        console.error("Error in fetchModels:", error);
         return new Response(
           JSON.stringify({ error: error.message }),
           {

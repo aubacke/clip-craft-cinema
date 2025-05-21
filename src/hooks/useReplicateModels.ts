@@ -28,8 +28,10 @@ export function useReplicateModels() {
       try {
         setIsLoading(true);
         setErrorMessage(null);
+
+        // Important change: Don't use the "video" filter when we have an allowList
+        // This ensures we get all the models we explicitly want
         const data = await fetchReplicateModels({ 
-          filter: "video",
           allowList: ALLOWED_MODELS
         });
         

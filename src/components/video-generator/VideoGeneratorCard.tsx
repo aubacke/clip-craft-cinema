@@ -55,6 +55,10 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
     }
   };
 
+  // Log current models for debugging
+  console.log("Available models:", models.map(m => `${m.owner}/${m.name}`));
+  console.log("Selected model ID:", selectedModelId);
+
   return (
     <Card className="glass-card animate-fade-in">
       <CardContent className="p-6">

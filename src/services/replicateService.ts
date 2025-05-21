@@ -48,6 +48,7 @@ export async function fetchReplicateModels(options?: {
   allowList?: string[];
 }): Promise<{ results: ReplicateModel[], next?: string }> {
   try {
+    console.log("Fetching models with options:", options);
     const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
       body: { 
         fetchModels: true,
@@ -59,9 +60,11 @@ export async function fetchReplicateModels(options?: {
     });
 
     if (error) {
+      console.error("Error from Supabase function:", error);
       throw new Error(error.message);
     }
 
+    console.log(`Received ${data?.results?.length || 0} models from API`);
     return data;
   } catch (error) {
     console.error("Error fetching Replicate models:", error);
