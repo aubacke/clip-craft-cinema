@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { SettingsButton } from '@/components/SettingsButton';
-import { createVideoPrediction } from '@/services/videoApi';
+import { createVideoPrediction } from '@/services/video/predictionService';
 import { toast } from 'sonner';
 import { Video } from '@/lib/types';
 import { useReplicateModels } from '@/hooks/useReplicateModels';
