@@ -1,14 +1,17 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
-import { VIDEO_MODELS, DEFAULT_MODEL_ID, SAMPLE_PROMPTS } from '@/lib/constants';
+import { SAMPLE_PROMPTS, DEFAULT_MODEL_ID } from '@/lib/constants';
 import { createVideoPrediction } from '@/services/videoApi';
 import { toast } from 'sonner';
 import { Video } from '@/lib/types';
 import { SettingsButton } from './SettingsButton';
+import { fetchReplicateModels, fetchModelDetails } from '@/services/replicateService';
+import { ReplicateModel } from '@/lib/replicateTypes';
+import { Loader2 } from 'lucide-react';
 
 interface VideoGeneratorProps {
   onVideoCreated: (video: Video) => void;
@@ -18,8 +21,68 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
   const [prompt, setPrompt] = useState('');
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [models, setModels] = useState<ReplicateModel[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(true);
+  const [modelVersions, setModelVersions] = useState<Record<string, string>>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
+  // Get the selected model
+  const selectedModel = models.find(model => `${model.owner}/${model.name}` === selectedModelId);
+  
+  // Fetch available models
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        setIsLoadingModels(true);
+        setErrorMessage(null);
+        const data = await fetchReplicateModels({ filter: "video" });
+        
+        // Format models into our required format
+        const formattedModels = data.results.map(model => {
+          // Store default version ID in our state
+          if (model.latest_version) {
+            setModelVersions(prev => ({
+              ...prev,
+              [`${model.owner}/${model.name}`]: model.latest_version.id
+            }));
+          }
+          
+          return model;
+        });
+        
+        setModels(formattedModels);
+      } catch (error) {
+        console.error("Error fetching models:", error);
+        setErrorMessage("Failed to load models. Please check your API key in settings.");
+        toast.error("Failed to load models. Please check your API key.");
+      } finally {
+        setIsLoadingModels(false);
+      }
+    };
+    
+    loadModels();
+  }, []);
+  
+  // Fetch details for a specific model when selected
+  useEffect(() => {
+    if (selectedModelId && !modelVersions[selectedModelId]) {
+      const fetchVersions = async () => {
+        try {
+          const modelDetails = await fetchModelDetails(selectedModelId);
+          if (modelDetails.versions && modelDetails.versions.length > 0) {
+            setModelVersions(prev => ({
+              ...prev,
+              [selectedModelId]: modelDetails.versions[0].id
+            }));
+          }
+        } catch (error) {
+          console.error(`Error fetching versions for ${selectedModelId}:`, error);
+        }
+      };
+      
+      fetchVersions();
+    }
+  }, [selectedModelId]);
   
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -27,9 +90,14 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
       return;
     }
 
+    if (!selectedModelId || !modelVersions[selectedModelId]) {
+      toast.error("Invalid model selection");
+      return;
+    }
+
     try {
       setIsGenerating(true);
-      const modelVersion = selectedModel?.version || VIDEO_MODELS[0].version;
+      const modelVersion = modelVersions[selectedModelId];
       
       const newVideo = await createVideoPrediction(prompt, selectedModelId, modelVersion);
       onVideoCreated(newVideo);
@@ -82,21 +150,37 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
           <label className="block text-sm font-medium mb-1">
             Model
           </label>
-          <Select 
-            value={selectedModelId} 
-            onValueChange={setSelectedModelId}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a model" />
-            </SelectTrigger>
-            <SelectContent>
-              {VIDEO_MODELS.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
-                  {model.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          
+          {isLoadingModels ? (
+            <div className="flex items-center space-x-2 py-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm text-muted-foreground">Loading models...</span>
+            </div>
+          ) : errorMessage ? (
+            <div className="text-sm text-red-500">
+              {errorMessage}
+            </div>
+          ) : (
+            <Select 
+              value={selectedModelId} 
+              onValueChange={setSelectedModelId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a model" />
+              </SelectTrigger>
+              <SelectContent>
+                {models.map((model) => (
+                  <SelectItem 
+                    key={`${model.owner}/${model.name}`} 
+                    value={`${model.owner}/${model.name}`}
+                  >
+                    {model.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          
           {selectedModel && (
             <p className="text-xs text-muted-foreground mt-1">
               {selectedModel.description}
@@ -107,7 +191,7 @@ const VideoGenerator: React.FC<VideoGeneratorProps> = ({ onVideoCreated }) => {
         <Button 
           className="w-full" 
           onClick={handleGenerate}
-          disabled={isGenerating || !prompt.trim()}
+          disabled={isGenerating || !prompt.trim() || isLoadingModels || !selectedModel}
         >
           {isGenerating ? "Generating..." : "Generate Video"}
         </Button>
