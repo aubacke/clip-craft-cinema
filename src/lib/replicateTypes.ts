@@ -56,3 +56,35 @@ export interface ReplicateModelDetails {
   cover_image_url: string;
   versions: ModelVersion[];
 }
+
+export interface VideoGenerationParameters {
+  prompt: string;
+  negative_prompt?: string;
+  image?: File | null;
+  image_url?: string;
+  width?: number;
+  height?: number;
+  aspect_ratio?: string;
+  num_frames?: number;
+  fps?: number;
+  cfg_scale?: number;
+  motion_bucket_id?: number;
+  seed?: number;
+  use_randomized_seed?: boolean;
+  steps?: number;
+  model_specific?: Record<string, any>;
+}
+
+export interface ModelParameterDefinition {
+  name: string;
+  type: 'text' | 'number' | 'slider' | 'checkbox' | 'select' | 'image' | 'aspect-ratio';
+  label: string;
+  defaultValue?: any;
+  min?: number;
+  max?: number;
+  step?: number;
+  options?: {value: string | number, label: string}[];
+  description?: string;
+  isAdvanced?: boolean;
+  modelSpecific?: string[];
+}

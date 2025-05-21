@@ -1,21 +1,94 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { Video } from '../lib/types';
+import { VideoGenerationParameters } from '../lib/replicateTypes';
 import { toast } from 'sonner';
 import { callReplicateModel, checkPredictionStatus } from './replicateService';
 
+// Format parameters for different models
+const formatModelInputs = (
+  parameters: VideoGenerationParameters, 
+  modelId: string
+): Record<string, any> => {
+  // Start with the basic parameters that are common
+  const inputParams: Record<string, any> = {
+    prompt: parameters.prompt
+  };
+  
+  // Add negative prompt if provided
+  if (parameters.negative_prompt) {
+    inputParams.negative_prompt = parameters.negative_prompt;
+  }
+  
+  // Add image URL if already provided (from a previous upload)
+  if (parameters.image_url) {
+    inputParams.image = parameters.image_url;
+  }
+  
+  // Handle specific parameters based on the model
+  if (modelId.includes('google/veo')) {
+    // Handle Google Veo parameters
+    if (parameters.aspect_ratio) {
+      const [width, height] = parameters.aspect_ratio.split(':').map(Number);
+      if (width && height) {
+        const ratio = width / height;
+        if (ratio > 1) { // Landscape
+          inputParams.width = 768;
+          inputParams.height = Math.floor(768 / ratio);
+        } else { // Portrait or square
+          inputParams.height = 768;
+          inputParams.width = Math.floor(768 * ratio);
+        }
+      }
+    }
+    
+    if (parameters.cfg_scale) inputParams.cfg_scale = parameters.cfg_scale;
+    if (parameters.seed && !parameters.use_randomized_seed) inputParams.seed = parameters.seed;
+    if (parameters.steps) inputParams.num_inference_steps = parameters.steps;
+  } 
+  else if (modelId.includes('kwaivgi/kling')) {
+    // Handle Kling parameters
+    if (parameters.width) inputParams.width = parameters.width;
+    if (parameters.height) inputParams.height = parameters.height;
+    if (parameters.cfg_scale) inputParams.guidance_scale = parameters.cfg_scale;
+    if (parameters.num_frames) inputParams.num_frames = parameters.num_frames;
+    if (parameters.fps) inputParams.fps = parameters.fps;
+    if (parameters.seed && !parameters.use_randomized_seed) inputParams.seed = parameters.seed;
+    if (parameters.model_specific?.motion_strength) {
+      inputParams.motion_strength = parameters.model_specific.motion_strength;
+    }
+  } 
+  else if (modelId.includes('luma/ray')) {
+    // Handle Luma Ray parameters
+    if (parameters.fps) inputParams.fps = parameters.fps;
+    if (parameters.num_frames) inputParams.num_frames = parameters.num_frames;
+    if (parameters.seed && !parameters.use_randomized_seed) inputParams.seed = parameters.seed;
+    
+    // Add model-specific parameters
+    if (parameters.model_specific?.style) {
+      inputParams.style = parameters.model_specific.style;
+    }
+  }
+
+  return inputParams;
+};
+
 // Create a video prediction using Replicate
 export const createVideoPrediction = async (
-  prompt: string,
+  parameters: VideoGenerationParameters,
   modelId: string,
   modelVersion: string
 ): Promise<Video> => {
   try {
-    const data = await callReplicateModel(modelVersion, { prompt });
+    // Format the parameters based on the model
+    const formattedInputs = formatModelInputs(parameters, modelId);
+    
+    // Call the API with the formatted inputs and optional image
+    const data = await callReplicateModel(modelVersion, formattedInputs, parameters.image);
     
     return {
       id: data.id || uuidv4(),
-      prompt,
+      prompt: parameters.prompt,
       modelId,
       status: 'processing',
       createdAt: new Date().toISOString(),

@@ -6,9 +6,19 @@ const FUNCTION_NAME = "replicate-api";
 
 export async function callReplicateModel(
   modelVersion: string, 
-  input: Record<string, any>
+  input: Record<string, any>,
+  imageFile?: File | null
 ): Promise<ReplicateResponse> {
   try {
+    // Handle image upload if provided
+    let imageUrl: string | undefined;
+    
+    if (imageFile) {
+      imageUrl = await uploadAndGetImageUrl(imageFile);
+      // Add the image URL to the input
+      input.image = imageUrl;
+    }
+    
     const { data, error } = await supabase.functions.invoke(FUNCTION_NAME, {
       body: { modelVersion, input }
     });
@@ -22,6 +32,23 @@ export async function callReplicateModel(
     console.error("Error calling Replicate API:", error);
     throw error;
   }
+}
+
+async function uploadAndGetImageUrl(file: File): Promise<string> {
+  // Convert the file to a base64 string to send to the edge function
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        const base64Data = reader.result.split(',')[1];
+        resolve(base64Data);
+      } else {
+        reject(new Error('Failed to convert image to base64'));
+      }
+    };
+    reader.onerror = () => reject(reader.error);
+  });
 }
 
 export async function checkPredictionStatus(predictionId: string): Promise<ReplicateResponse> {

@@ -197,6 +197,28 @@ serve(async (req) => {
       throw new Error("Model version is required");
     }
 
+    // Process image if it's included as base64
+    const processedInput = { ...input };
+    
+    // If input contains a base64 image, upload it to a temporary URL
+    if (input.image && typeof input.image === 'string' && 
+        input.image.startsWith('data:image') || 
+        (input.image.length > 1000 && !input.image.startsWith('http'))) {
+      
+      try {
+        console.log("Processing base64 image");
+        const tempUrl = await uploadBase64ImageToTemp(input.image);
+        processedInput.image = tempUrl;
+        console.log("Uploaded image to temp URL:", tempUrl);
+      } catch (uploadError) {
+        console.error("Error uploading image:", uploadError);
+        throw new Error("Failed to process the uploaded image");
+      }
+    }
+
+    console.log(`Creating prediction with model version: ${modelVersion}`);
+    console.log("Input parameters:", JSON.stringify(processedInput));
+
     // Call the Replicate API
     const response = await fetch("https://api.replicate.com/v1/predictions", {
       method: "POST",
@@ -206,16 +228,18 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         version: modelVersion,
-        input,
+        input: processedInput,
       }),
     });
 
     if (!response.ok) {
       const error = await response.json();
+      console.error("Replicate API error response:", error);
       throw new Error(error.detail || "Failed to call Replicate API");
     }
 
     const data = await response.json();
+    console.log("Prediction created successfully:", data.id);
 
     return new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -232,3 +256,32 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to upload a base64 image to a temporary service
+// This is needed because some Replicate models only accept URLs, not base64 data
+async function uploadBase64ImageToTemp(base64Data: string): Promise<string> {
+  // Using ImgBB as a temporary image host
+  // In a production app, you'd use a more reliable service or your own storage
+  const apiKey = "7105a2cab2cf9f3e8b46550f49674205"; // Free ImgBB API key for demo purposes
+  
+  // Extract the base64 data part if it's a data URL
+  let base64Only = base64Data;
+  if (base64Data.includes(',')) {
+    base64Only = base64Data.split(',')[1];
+  }
+  
+  const formData = new FormData();
+  formData.append('image', base64Only);
+  
+  const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+    method: 'POST',
+    body: formData
+  });
+  
+  if (!response.ok) {
+    throw new Error('Failed to upload image to temporary storage');
+  }
+  
+  const data = await response.json();
+  return data.data.url;
+}

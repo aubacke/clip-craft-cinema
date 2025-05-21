@@ -9,13 +9,20 @@ import { Video } from '@/lib/types';
 import { useReplicateModels } from '@/hooks/useReplicateModels';
 import { PromptInput } from './PromptInput';
 import { ModelSelector } from './ModelSelector';
+import { ModelParameters } from './ModelParameters';
+import { VideoGenerationParameters } from '@/lib/replicateTypes';
 
 interface VideoGeneratorCardProps {
   onVideoCreated: (video: Video) => void;
 }
 
 export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoCreated }) => {
-  const [prompt, setPrompt] = useState('');
+  const [parameters, setParameters] = useState<VideoGenerationParameters>({
+    prompt: '',
+    negative_prompt: '',
+    use_randomized_seed: true,
+    model_specific: {}
+  });
   const [isGenerating, setIsGenerating] = useState(false);
 
   const { 
@@ -29,7 +36,7 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
   } = useReplicateModels();
 
   const handleGenerate = async () => {
-    if (!prompt.trim()) {
+    if (!parameters.prompt.trim()) {
       toast.error("Please enter a prompt");
       return;
     }
@@ -43,9 +50,13 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
       setIsGenerating(true);
       const modelVersion = modelVersions[selectedModelId];
       
-      const newVideo = await createVideoPrediction(prompt, selectedModelId, modelVersion);
-      onVideoCreated(newVideo);
+      const newVideo = await createVideoPrediction(
+        parameters, 
+        selectedModelId, 
+        modelVersion
+      );
       
+      onVideoCreated(newVideo);
       toast.success("Video generation started");
     } catch (error) {
       console.error("Error generating video:", error);
@@ -54,10 +65,6 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
       setIsGenerating(false);
     }
   };
-
-  // Log current models for debugging
-  console.log("Available models:", models.map(m => `${m.owner}/${m.name}`));
-  console.log("Selected model ID:", selectedModelId);
 
   return (
     <Card className="glass-card animate-fade-in">
@@ -68,8 +75,8 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
         </div>
         
         <PromptInput 
-          prompt={prompt} 
-          onPromptChange={setPrompt} 
+          prompt={parameters.prompt} 
+          onPromptChange={(prompt) => setParameters({...parameters, prompt})} 
         />
         
         <ModelSelector 
@@ -81,10 +88,20 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
           selectedModel={selectedModel}
         />
         
+        {selectedModelId && (
+          <div className="mb-6">
+            <ModelParameters
+              selectedModelId={selectedModelId}
+              parameters={parameters}
+              onParameterChange={setParameters}
+            />
+          </div>
+        )}
+        
         <Button 
           className="w-full" 
           onClick={handleGenerate}
-          disabled={isGenerating || !prompt.trim() || isLoading || !selectedModel}
+          disabled={isGenerating || !parameters.prompt.trim() || isLoading || !selectedModel}
         >
           {isGenerating ? "Generating..." : "Generate Video"}
         </Button>
