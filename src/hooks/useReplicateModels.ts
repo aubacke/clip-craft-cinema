@@ -28,17 +28,31 @@ export function useReplicateModels() {
         // Use our constants directly instead of fetching
         const staticModels = VIDEO_MODELS.map(model => {
           const [owner, name] = model.id.split('/');
-          return {
+          
+          // Create a complete ReplicateModel object with all required properties
+          const replicateModel: ReplicateModel = {
+            url: `https://replicate.com/${owner}/${name}`,
             owner,
             name,
             description: model.description,
+            visibility: 'public',
+            github_url: '',
+            paper_url: '',
+            license_url: '',
+            run_count: 0,
+            cover_image_url: '',
             latest_version: {
-              id: model.version
+              id: model.version,
+              created_at: new Date().toISOString(),
+              cog_version: '0.0.0',
+              openapi_schema: {}
             }
           };
+          
+          return replicateModel;
         });
         
-        // Format models into our required format
+        // Set the models
         setModels(staticModels);
         
         // Set up versions for each model
