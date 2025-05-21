@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -70,14 +69,18 @@ serve(async (req) => {
           const modelDetails = await modelVersionsResponse.json();
           
           return new Response(JSON.stringify({ 
-            models: modelsData, 
             modelDetails 
           }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
         
-        return new Response(JSON.stringify(modelsData), {
+        // Format the response to match what the frontend expects
+        // Wrap the results array in an object with a 'results' property
+        return new Response(JSON.stringify({
+          results: modelsData.results || [],
+          next: modelsData.next || null
+        }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } catch (error) {
