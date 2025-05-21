@@ -3,14 +3,10 @@ import { useState, useEffect } from 'react';
 import { fetchReplicateModels, fetchModelDetails } from '@/services/replicateService';
 import { ReplicateModel } from '@/lib/replicateTypes';
 import { toast } from 'sonner';
+import { VIDEO_MODELS } from '@/lib/constants';
 
-// List of allowed models
-export const ALLOWED_MODELS = [
-  "google/veo-2", 
-  "kwaivgi/kling-v2.0", 
-  "luma/ray-2-720p", 
-  "luma/ray-flash-2-720p"
-];
+// List of allowed models from our constants
+export const ALLOWED_MODELS = VIDEO_MODELS.map(model => model.id);
 
 export function useReplicateModels() {
   const [models, setModels] = useState<ReplicateModel[]>([]);
@@ -29,36 +25,43 @@ export function useReplicateModels() {
         setIsLoading(true);
         setErrorMessage(null);
 
-        // Important change: Don't use the "video" filter when we have an allowList
-        // This ensures we get all the models we explicitly want
-        const data = await fetchReplicateModels({ 
-          allowList: ALLOWED_MODELS
+        // Use our constants directly instead of fetching
+        const staticModels = VIDEO_MODELS.map(model => {
+          const [owner, name] = model.id.split('/');
+          return {
+            owner,
+            name,
+            description: model.description,
+            latest_version: {
+              id: model.version
+            }
+          };
         });
         
         // Format models into our required format
-        const formattedModels = data.results.map(model => {
-          // Store default version ID in our state
-          if (model.latest_version) {
-            setModelVersions(prev => ({
-              ...prev,
-              [`${model.owner}/${model.name}`]: model.latest_version.id
-            }));
+        setModels(staticModels);
+        
+        // Set up versions for each model
+        const versionMap: Record<string, string> = {};
+        staticModels.forEach(model => {
+          const modelId = `${model.owner}/${model.name}`;
+          const videoModel = VIDEO_MODELS.find(vm => vm.id === modelId);
+          if (videoModel) {
+            versionMap[modelId] = videoModel.version;
           }
-          
-          return model;
         });
         
-        setModels(formattedModels);
+        setModelVersions(versionMap);
         
         // Auto-select the first model if available
-        if (formattedModels.length > 0) {
-          const firstModelId = `${formattedModels[0].owner}/${formattedModels[0].name}`;
+        if (staticModels.length > 0) {
+          const firstModelId = `${staticModels[0].owner}/${staticModels[0].name}`;
           setSelectedModelId(firstModelId);
         }
       } catch (error) {
-        console.error("Error fetching models:", error);
-        setErrorMessage("Failed to load models. Please check your API key in settings.");
-        toast.error("Failed to load models. Please check your API key.");
+        console.error("Error setting up models:", error);
+        setErrorMessage("Failed to initialize models.");
+        toast.error("Failed to initialize models.");
       } finally {
         setIsLoading(false);
       }
@@ -66,27 +69,6 @@ export function useReplicateModels() {
     
     loadModels();
   }, []);
-  
-  // Fetch details for a specific model when selected
-  useEffect(() => {
-    if (selectedModelId && !modelVersions[selectedModelId]) {
-      const fetchVersions = async () => {
-        try {
-          const modelDetails = await fetchModelDetails(selectedModelId);
-          if (modelDetails.versions && modelDetails.versions.length > 0) {
-            setModelVersions(prev => ({
-              ...prev,
-              [selectedModelId]: modelDetails.versions[0].id
-            }));
-          }
-        } catch (error) {
-          console.error(`Error fetching versions for ${selectedModelId}:`, error);
-        }
-      };
-      
-      fetchVersions();
-    }
-  }, [selectedModelId]);
 
   return {
     models,

@@ -11,8 +11,8 @@ interface ModelSelectorProps {
   disabled?: boolean;
   isLoading?: boolean;
   errorMessage?: string | null;
-  models?: ReplicateModel[];
-  selectedModel?: ReplicateModel | undefined;
+  models?: any[];
+  selectedModel?: any | undefined;
 }
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({

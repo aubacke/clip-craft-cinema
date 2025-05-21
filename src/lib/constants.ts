@@ -3,32 +3,32 @@ import { VideoModel } from "./types";
 
 export const VIDEO_MODELS: VideoModel[] = [
   {
-    id: "stability-ai/stable-video-diffusion",
-    name: "Stable Video Diffusion",
-    description: "Generate videos from images using Stable Diffusion",
-    version: "c8c066dea4e22ce35de56f0226bf144d3f666aac75bbd3418b269729fa0dab40"
+    id: "google/veo-2",
+    name: "Google Veo 2",
+    description: "Google's state-of-the-art text-to-video generation model",
+    version: "accd3bc82888e83d9628378a5b55312c36566a6d33a004ee3a9a35141eb69286"
   },
   {
-    id: "lucataco/animate-diff",
-    name: "Animate Diff",
-    description: "Create fluid animations from text prompts",
-    version: "1f70df83a3f9457a21504b42d2ee3bd797217716ebb86374b872f180e857b889"
+    id: "kwaivgi/kling-v2.0",
+    name: "Kling 2.0",
+    description: "Generate high-quality videos with advanced motion dynamics",
+    version: "2ca27df545d8de09bd3ea02ec12f2c6eb8620d6dac03b9e83bbc39eced1866a5"
   },
   {
-    id: "lucataco/sdxl-lightning-4step",
-    name: "SDXL Lightning",
-    description: "Ultra-fast video generation with SDXL",
-    version: "5c5d9e37598e17e8cd5fec6a946c3f65115915ca578fbd6a49d5bfc11102f408"
+    id: "luma/ray-2-720p",
+    name: "Luma Ray 2",
+    description: "High-definition video generation with cinematic quality",
+    version: "bbf97c586baab12a5955ecd3a3e98d1151218c4633779b5d1f292c915460f9f6"
   },
   {
-    id: "video-ldm/text-to-video-synthesis",
-    name: "Text to Video",
-    description: "Generate videos directly from text descriptions",
-    version: "a1631954dce6fe36b8e4fb98aeb9c3ee8c36864b91d766476456d1902bd38ffa"
+    id: "luma/ray-flash-2-720p",
+    name: "Luma Ray Flash",
+    description: "Ultra-fast video generation with the Luma engine",
+    version: "4e3c4baefed2b072283c909bb13008aa3cd29f6dacfef95e04a5055f95e29145"
   }
 ];
 
-export const DEFAULT_MODEL_ID = "stability-ai/stable-video-diffusion";
+export const DEFAULT_MODEL_ID = "google/veo-2";
 
 export const SAMPLE_PROMPTS = [
   "A cinematic shot of a fluffy corgi running through a field at sunset",
