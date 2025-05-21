@@ -1,23 +1,16 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
-import { ModelSelector } from './ModelSelector';
-import { ModelParameters } from './ModelParameters';
-import { PromptInput } from './PromptInput';
-import { Video, VideoGenerationParameters } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { VideoGenerationParameters } from '@/lib/types';
 import { VIDEO_MODELS } from '@/lib/constants';
-import { createVideoPrediction } from '@/services/video/predictionService';
+import { VideoGeneratorForm } from './VideoGeneratorForm';
 
 interface VideoGeneratorCardProps {
-  onVideoCreated: (video: Video) => void;
+  onVideoCreated: (video: any) => void;
 }
 
 export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoCreated }) => {
   const [selectedModelId, setSelectedModelId] = useState(VIDEO_MODELS[0].id);
-  const [isGenerating, setIsGenerating] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<VideoGenerationParameters>({
     prompt: '',
@@ -36,85 +29,21 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
     }
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-    
-    try {
-      setIsGenerating(true);
-      
-      const videoId = uuidv4();
-      const newVideo: Video = {
-        id: videoId,
-        prompt: prompt.trim(),
-        modelId: selectedModelId,
-        status: 'processing',
-        createdAt: new Date().toISOString(),
-        // If this video has a reference image, link it to the reference image folder
-        folderId: parameters.referenceImageFolderId,
-        referenceImageId: parameters.referenceImageId
-      };
-      
-      onVideoCreated(newVideo);
-      
-      // Get the selected model's version
-      const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
-      if (!selectedModel) {
-        throw new Error("Selected model not found");
-      }
-      
-      // Start prediction in the background
-      createVideoPrediction(parameters, selectedModelId, selectedModel.version)
-        .catch(error => console.error("Error creating prediction:", error));
-        
-    } catch (error) {
-      console.error("Error generating video:", error);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-  
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Generate Video</CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <PromptInput
-            prompt={prompt}
-            onPromptChange={handlePromptChange}
-            placeholder="Describe the video you want to generate..."
-            disabled={isGenerating}
-          />
-          
-          <ModelSelector
-            selectedModelId={selectedModelId}
-            onModelSelect={setSelectedModelId}
-            disabled={isGenerating}
-          />
-          
-          <ModelParameters
-            selectedModelId={selectedModelId}
-            parameters={parameters}
-            onParameterChange={handleParameterChange}
-          />
-          
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isGenerating || !prompt.trim()}
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Video...
-              </>
-            ) : (
-              'Generate Video'
-            )}
-          </Button>
-        </form>
+        <VideoGeneratorForm 
+          prompt={prompt}
+          onPromptChange={handlePromptChange}
+          selectedModelId={selectedModelId}
+          onModelSelect={setSelectedModelId}
+          parameters={parameters}
+          onParameterChange={handleParameterChange}
+          onVideoCreated={onVideoCreated}
+        />
       </CardContent>
     </Card>
   );
