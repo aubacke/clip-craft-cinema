@@ -1,10 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import VideoGenerator from '@/components/VideoGenerator';
-import VideoGallery from '@/components/VideoGallery';
 import Sidebar from '@/components/Sidebar';
-import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
+import { PageHeader } from '@/components/video/PageHeader';
+import { MainContent } from '@/components/video/MainContent';
 import { v4 as uuidv4 } from 'uuid';
 import { Video, Folder } from '@/lib/types';
 import { toast } from 'sonner';
@@ -22,7 +20,7 @@ import {
   getReferenceImagesFromLocalStorage, 
   getReferenceImageByFolderId 
 } from '@/services/video/referenceImageService';
-import { checkVideoPredictionStatus } from '@/services/video/predictionService';
+import { useVideoPolling } from '@/hooks/useVideoPolling';
 
 const Index = () => {
   // State
@@ -40,44 +38,13 @@ const Index = () => {
     setReferenceImages(getReferenceImagesFromLocalStorage());
   }, []);
   
-  // Poll for video status updates
+  // Use the video polling hook
+  const updatedVideos = useVideoPolling(videos);
+  
+  // Update videos when polling gives us updates
   useEffect(() => {
-    const processingVideos = videos.filter(v => v.status === 'processing');
-    
-    if (processingVideos.length === 0) return;
-    
-    const intervalId = setInterval(async () => {
-      for (const video of processingVideos) {
-        try {
-          const updatedVideo = await checkVideoPredictionStatus(video.id);
-          
-          if (updatedVideo.status !== 'processing') {
-            // Preserve the reference image ID and folder ID when updating the video
-            updatedVideo.referenceImageId = video.referenceImageId;
-            updatedVideo.folderId = video.folderId;
-            
-            setVideos(prev => 
-              prev.map(v => 
-                v.id === video.id ? updatedVideo : v
-              )
-            );
-            
-            saveVideoToLocalStorage(updatedVideo);
-            
-            if (updatedVideo.status === 'completed') {
-              toast.success(`Video "${truncateText(video.prompt, 20)}" is ready!`);
-            } else if (updatedVideo.status === 'failed') {
-              toast.error(`Video generation failed: ${updatedVideo.error || 'Unknown error'}`);
-            }
-          }
-        } catch (error) {
-          console.error(`Error checking video ${video.id} status:`, error);
-        }
-      }
-    }, 5000);
-    
-    return () => clearInterval(intervalId);
-  }, [videos]);
+    setVideos(updatedVideos);
+  }, [updatedVideos]);
   
   // Handlers
   const handleVideoCreated = (video: Video) => {
@@ -127,20 +94,8 @@ const Index = () => {
   };
   
   // Helper function to get the reference image for a folder
-  const getReferenceImageForFolder = (folderId: string) => {
-    if (!folderId) return null;
-    return getReferenceImageByFolderId(folderId);
-  };
-  
-  // Helper functions
-  const truncateText = (text: string, maxLength: number) => {
-    if (!text) return '';
-    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-  };
-  
-  // If we're viewing a reference image folder, get the reference image
   const selectedFolderReferenceImage = selectedFolderId 
-    ? getReferenceImageForFolder(selectedFolderId)
+    ? getReferenceImageByFolderId(selectedFolderId)
     : null;
   
   return (
@@ -157,65 +112,24 @@ const Index = () => {
       
       <div className="flex-1 md:ml-64">
         <div className="p-4 md:p-6">
-          <div className="flex justify-between items-center mb-6">
-            <Button 
-              variant="outline" 
-              size="icon"
-              className="md:hidden"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-            
-            <h1 className="text-2xl font-bold ml-2 md:ml-0">
-              {selectedFolderId 
-                ? `Folder: ${folders.find(f => f.id === selectedFolderId)?.name}`
-                : 'All Videos'}
-            </h1>
-            
-            <div className="flex gap-2">
-              {!showGenerator && (
-                <Button onClick={() => setShowGenerator(true)}>
-                  Create New Video
-                </Button>
-              )}
-            </div>
-          </div>
+          <PageHeader
+            selectedFolderId={selectedFolderId}
+            folders={folders}
+            onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+            onCreateNewVideo={handleNewVideo}
+            showGenerator={showGenerator}
+          />
           
-          {/* Display reference image if viewing a reference image folder */}
-          {selectedFolderReferenceImage && (
-            <div className="mb-6 p-4 border rounded-lg">
-              <h2 className="text-lg font-medium mb-2">Reference Image</h2>
-              <div className="max-w-md">
-                <img 
-                  src={selectedFolderReferenceImage.dataUrl} 
-                  alt="Reference" 
-                  className="rounded-md w-full object-contain max-h-60"
-                />
-              </div>
-            </div>
-          )}
-          
-          {showGenerator ? (
-            <div className="max-w-2xl mx-auto mb-8">
-              <VideoGenerator 
-                onVideoCreated={handleVideoCreated}
-              />
-            </div>
-          ) : (
-            <div className="mb-6">
-              <Button variant="link" onClick={() => setShowGenerator(true)}>
-                + Generate another video
-              </Button>
-            </div>
-          )}
-          
-          <VideoGallery
+          <MainContent
+            selectedFolderReferenceImage={selectedFolderReferenceImage}
+            showGenerator={showGenerator}
+            setShowGenerator={setShowGenerator}
+            handleVideoCreated={handleVideoCreated}
             videos={videos}
             folders={folders}
             selectedFolderId={selectedFolderId}
-            onDeleteVideo={handleDeleteVideo}
-            onMoveVideoToFolder={handleMoveVideoToFolder}
+            handleDeleteVideo={handleDeleteVideo}
+            handleMoveVideoToFolder={handleMoveVideoToFolder}
           />
         </div>
       </div>

@@ -3,23 +3,26 @@ import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2 } from 'lucide-react';
 import { ReplicateModel } from '@/lib/replicateTypes';
+import { VIDEO_MODELS } from '@/lib/constants';
 
 interface ModelSelectorProps {
-  isLoading: boolean;
-  errorMessage: string | null;
-  models: ReplicateModel[];
   selectedModelId: string;
   onModelSelect: (modelId: string) => void;
-  selectedModel: ReplicateModel | undefined;
+  disabled?: boolean;
+  isLoading?: boolean;
+  errorMessage?: string | null;
+  models?: ReplicateModel[];
+  selectedModel?: ReplicateModel | undefined;
 }
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
-  isLoading,
-  errorMessage,
-  models,
   selectedModelId,
   onModelSelect,
-  selectedModel
+  disabled = false,
+  isLoading = false,
+  errorMessage = null,
+  models = VIDEO_MODELS,
+  selectedModel = VIDEO_MODELS.find(m => m.id === selectedModelId)
 }) => {
   return (
     <div className="mb-6">
@@ -44,6 +47,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         <Select 
           value={selectedModelId} 
           onValueChange={onModelSelect}
+          disabled={disabled}
         >
           <SelectTrigger>
             <SelectValue placeholder="Select a model" />
@@ -51,8 +55,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           <SelectContent>
             {models.map((model) => (
               <SelectItem 
-                key={`${model.owner}/${model.name}`} 
-                value={`${model.owner}/${model.name}`}
+                key={model.id} 
+                value={model.id}
               >
                 {model.name}
               </SelectItem>

@@ -7,11 +7,15 @@ import { SAMPLE_PROMPTS } from '@/lib/constants';
 interface PromptInputProps {
   prompt: string;
   onPromptChange: (value: string) => void;
+  placeholder?: string;
+  disabled?: boolean;
 }
 
 export const PromptInput: React.FC<PromptInputProps> = ({ 
   prompt, 
-  onPromptChange 
+  onPromptChange,
+  placeholder = "Describe the video you want to generate...",
+  disabled = false
 }) => {
   const handleSelectSamplePrompt = () => {
     const randomIndex = Math.floor(Math.random() * SAMPLE_PROMPTS.length);
@@ -29,6 +33,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           size="sm" 
           onClick={handleSelectSamplePrompt} 
           className="text-xs p-0 h-auto"
+          disabled={disabled}
         >
           Use sample prompt
         </Button>
@@ -36,8 +41,9 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       <Textarea 
         value={prompt}
         onChange={(e) => onPromptChange(e.target.value)}
-        placeholder="Describe the video you want to generate..."
+        placeholder={placeholder}
         className="min-h-[120px]"
+        disabled={disabled}
       />
     </div>
   );
