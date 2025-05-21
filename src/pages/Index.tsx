@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import VideoGenerator from '@/components/VideoGenerator';
 import VideoGallery from '@/components/VideoGallery';
@@ -11,10 +12,12 @@ import {
   saveVideoToLocalStorage,
   getVideosFromLocalStorage,
   deleteVideoFromLocalStorage,
+} from '@/services/video/storageService';
+import {
   saveFolderToLocalStorage,
   getFoldersFromLocalStorage,
   moveVideoToFolder
-} from '@/services/video/storageService';
+} from '@/services/video/folderService';
 import { checkVideoPredictionStatus } from '@/services/video/predictionService';
 
 const Index = () => {
