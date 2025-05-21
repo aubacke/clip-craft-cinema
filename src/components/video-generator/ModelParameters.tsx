@@ -1,6 +1,5 @@
-
 import React, { useState } from 'react';
-import { VideoGenerationParameters } from '@/lib/replicateTypes';
+import { VideoGenerationParameters } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronUp } from 'lucide-react';

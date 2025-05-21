@@ -7,10 +7,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { ModelSelector } from './ModelSelector';
 import { ModelParameters } from './ModelParameters';
 import { PromptInput } from './PromptInput';
-import { Video } from '@/lib/types';
+import { Video, VideoGenerationParameters } from '@/lib/types';
 import { VIDEO_MODELS } from '@/lib/constants';
-import { createPrediction } from '@/services/video/predictionService';
-import { VideoGenerationParameters } from '@/lib/replicateTypes';
+import { createVideoPrediction } from '@/services/video/predictionService';
 
 interface VideoGeneratorCardProps {
   onVideoCreated: (video: Video) => void;
@@ -58,8 +57,14 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
       
       onVideoCreated(newVideo);
       
+      // Get the selected model's version
+      const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
+      if (!selectedModel) {
+        throw new Error("Selected model not found");
+      }
+      
       // Start prediction in the background
-      createPrediction(selectedModelId, parameters, videoId)
+      createVideoPrediction(parameters, selectedModelId, selectedModel.version)
         .catch(error => console.error("Error creating prediction:", error));
         
     } catch (error) {
@@ -77,15 +82,15 @@ export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoC
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <PromptInput
-            value={prompt}
-            onChange={handlePromptChange}
+            prompt={prompt}
+            onPromptChange={handlePromptChange}
             placeholder="Describe the video you want to generate..."
             disabled={isGenerating}
           />
           
           <ModelSelector
             selectedModelId={selectedModelId}
-            onSelectModel={setSelectedModelId}
+            onModelSelect={setSelectedModelId}
             disabled={isGenerating}
           />
           
