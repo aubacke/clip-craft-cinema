@@ -15,6 +15,7 @@ export interface Video {
   thumbnailUrl?: string;
   createdAt: string;
   folderId?: string;
+  referenceImageId?: string;
   error?: string;
 }
 
@@ -22,4 +23,5 @@ export interface Folder {
   id: string;
   name: string;
   createdAt: string;
+  isReferenceFolder?: boolean;
 }

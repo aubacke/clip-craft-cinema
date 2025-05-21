@@ -6,6 +6,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { MODEL_PARAMETERS, getCommonParameters } from './parameters/modelDefinitions';
 import { ParameterSection } from './parameters/ParameterSection';
+import { createFolderForReferenceImage, saveReferenceImageToLocalStorage } from '@/services/video/referenceImageService';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ModelParametersProps {
   selectedModelId: string;
@@ -60,10 +62,30 @@ export const ModelParameters: React.FC<ModelParametersProps> = ({
     const imageUrl = URL.createObjectURL(file);
     setImagePreviewUrl(imageUrl);
     
-    onParameterChange({
-      ...parameters,
-      image: file
-    });
+    // Create a folder for the reference image
+    const folder = createFolderForReferenceImage(file);
+    
+    // Save the reference image to localStorage
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const imageId = uuidv4();
+      saveReferenceImageToLocalStorage({
+        id: imageId,
+        name: file.name,
+        dataUrl: reader.result as string,
+        folderId: folder.id,
+        createdAt: new Date().toISOString()
+      });
+      
+      // Update the parameters with the image and reference information
+      onParameterChange({
+        ...parameters,
+        image: file,
+        referenceImageId: imageId,
+        referenceImageFolderId: folder.id
+      });
+    };
+    reader.readAsDataURL(file);
   };
   
   const handleRemoveImage = () => {
@@ -74,7 +96,9 @@ export const ModelParameters: React.FC<ModelParametersProps> = ({
     onParameterChange({
       ...parameters,
       image: null,
-      image_url: undefined
+      image_url: undefined,
+      referenceImageId: undefined,
+      referenceImageFolderId: undefined
     });
   };
 

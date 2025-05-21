@@ -18,6 +18,10 @@ import {
   getFoldersFromLocalStorage,
   moveVideoToFolder
 } from '@/services/video/folderService';
+import { 
+  getReferenceImagesFromLocalStorage, 
+  getReferenceImageByFolderId 
+} from '@/services/video/referenceImageService';
 import { checkVideoPredictionStatus } from '@/services/video/predictionService';
 
 const Index = () => {
@@ -27,11 +31,13 @@ const Index = () => {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [showGenerator, setShowGenerator] = useState(true);
+  const [referenceImages, setReferenceImages] = useState<any[]>([]);
   
   // Load data from local storage
   useEffect(() => {
     setVideos(getVideosFromLocalStorage());
     setFolders(getFoldersFromLocalStorage());
+    setReferenceImages(getReferenceImagesFromLocalStorage());
   }, []);
   
   // Poll for video status updates
@@ -46,6 +52,10 @@ const Index = () => {
           const updatedVideo = await checkVideoPredictionStatus(video.id);
           
           if (updatedVideo.status !== 'processing') {
+            // Preserve the reference image ID and folder ID when updating the video
+            updatedVideo.referenceImageId = video.referenceImageId;
+            updatedVideo.folderId = video.folderId;
+            
             setVideos(prev => 
               prev.map(v => 
                 v.id === video.id ? updatedVideo : v
@@ -116,11 +126,22 @@ const Index = () => {
     setSidebarOpen(false);
   };
   
+  // Helper function to get the reference image for a folder
+  const getReferenceImageForFolder = (folderId: string) => {
+    if (!folderId) return null;
+    return getReferenceImageByFolderId(folderId);
+  };
+  
   // Helper functions
   const truncateText = (text: string, maxLength: number) => {
     if (!text) return '';
     return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
   };
+  
+  // If we're viewing a reference image folder, get the reference image
+  const selectedFolderReferenceImage = selectedFolderId 
+    ? getReferenceImageForFolder(selectedFolderId)
+    : null;
   
   return (
     <div className="flex min-h-screen bg-background">
@@ -160,6 +181,20 @@ const Index = () => {
               )}
             </div>
           </div>
+          
+          {/* Display reference image if viewing a reference image folder */}
+          {selectedFolderReferenceImage && (
+            <div className="mb-6 p-4 border rounded-lg">
+              <h2 className="text-lg font-medium mb-2">Reference Image</h2>
+              <div className="max-w-md">
+                <img 
+                  src={selectedFolderReferenceImage.dataUrl} 
+                  alt="Reference" 
+                  className="rounded-md w-full object-contain max-h-60"
+                />
+              </div>
+            </div>
+          )}
           
           {showGenerator ? (
             <div className="max-w-2xl mx-auto mb-8">

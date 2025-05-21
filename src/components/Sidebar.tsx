@@ -2,7 +2,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { FolderPlus, Plus } from 'lucide-react';
+import { FolderPlus, Plus, Image } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Folder } from '@/lib/types';
 import { VIDEO_MODELS } from '@/lib/constants';
@@ -36,6 +36,10 @@ const Sidebar: React.FC<SidebarProps> = ({
       setIsCreatingFolder(false);
     }
   };
+
+  // Separate regular folders from reference image folders
+  const regularFolders = folders.filter(folder => !folder.isReferenceFolder);
+  const referenceImageFolders = folders.filter(folder => folder.isReferenceFolder);
 
   return (
     <div
@@ -98,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             All Videos
           </Button>
           
-          {folders.map((folder) => (
+          {regularFolders.map((folder) => (
             <Button
               key={folder.id}
               variant={selectedFolderId === folder.id ? "default" : "outline"}
@@ -110,6 +114,27 @@ const Sidebar: React.FC<SidebarProps> = ({
             </Button>
           ))}
         </div>
+        
+        {referenceImageFolders.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center mb-2">
+              <h3 className="text-sm font-medium text-sidebar-foreground/70">Reference Images</h3>
+            </div>
+            
+            {referenceImageFolders.map((folder) => (
+              <Button
+                key={folder.id}
+                variant={selectedFolderId === folder.id ? "default" : "outline"}
+                size="sm"
+                className="w-full justify-start mb-1 text-sm"
+                onClick={() => onSelectFolder(folder.id)}
+              >
+                <Image className="mr-2 h-4 w-4" />
+                {folder.name}
+              </Button>
+            ))}
+          </div>
+        )}
         
         <div className="mt-auto">
           <h3 className="text-sm font-medium text-sidebar-foreground/70 mb-2">Available Models</h3>

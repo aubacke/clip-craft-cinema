@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, Folder, Trash2 } from 'lucide-react';
+import { MoreVertical, Folder, Trash2, Image } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +28,10 @@ const VideoCard: React.FC<VideoCardProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   
   const modelName = VIDEO_MODELS.find(m => m.id === video.modelId)?.name || video.modelId;
+  
+  // Check if this video has a reference image folder
+  const hasReferenceImage = !!video.referenceImageId;
+  const referenceFolder = video.folderId ? folders.find(f => f.id === video.folderId && f.isReferenceFolder) : null;
   
   return (
     <Card className="glass-card overflow-hidden">
@@ -71,7 +75,15 @@ const VideoCard: React.FC<VideoCardProps> = ({
         <div className="flex justify-between items-start">
           <div className="flex-1 pr-2">
             <p className="font-medium leading-snug line-clamp-2">{video.prompt}</p>
-            <p className="text-xs text-muted-foreground mt-1">{modelName}</p>
+            <div className="flex items-center mt-1">
+              <p className="text-xs text-muted-foreground">{modelName}</p>
+              {referenceFolder && (
+                <div className="flex items-center ml-2 text-xs text-muted-foreground">
+                  <Image className="h-3 w-3 mr-1" />
+                  <span>Reference image</span>
+                </div>
+              )}
+            </div>
           </div>
           
           <DropdownMenu>
@@ -91,15 +103,22 @@ const VideoCard: React.FC<VideoCardProps> = ({
                 Move to All Videos
               </DropdownMenuItem>
               
-              {folders.map(folder => (
-                <DropdownMenuItem 
-                  key={folder.id}
-                  onClick={() => onMoveToFolder(video.id, folder.id)}
-                >
-                  <Folder className="mr-2 h-4 w-4" />
-                  Move to {folder.name}
-                </DropdownMenuItem>
-              ))}
+              {folders
+                .filter(folder => !folder.isReferenceFolder || folder.id === video.folderId)
+                .map(folder => (
+                  <DropdownMenuItem 
+                    key={folder.id}
+                    onClick={() => onMoveToFolder(video.id, folder.id)}
+                  >
+                    {folder.isReferenceFolder ? (
+                      <Image className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Folder className="mr-2 h-4 w-4" />
+                    )}
+                    Move to {folder.name}
+                  </DropdownMenuItem>
+                ))
+              }
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
