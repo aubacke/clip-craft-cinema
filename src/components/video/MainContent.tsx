@@ -29,6 +29,11 @@ export const MainContent: React.FC<MainContentProps> = ({
   handleDeleteVideo,
   handleMoveVideoToFolder
 }) => {
+  // Get videos filtered by the selected folder
+  const filteredVideos = selectedFolderId
+    ? videos.filter(video => video.folderId === selectedFolderId)
+    : videos.filter(video => !video.folderId);
+
   return (
     <>
       <ReferenceImageDisplay referenceImage={selectedFolderReferenceImage} />
@@ -48,7 +53,7 @@ export const MainContent: React.FC<MainContentProps> = ({
       )}
       
       <VideoGallery
-        videos={videos}
+        videos={filteredVideos}
         folders={folders}
         selectedFolderId={selectedFolderId}
         onDeleteVideo={handleDeleteVideo}
@@ -56,4 +61,4 @@ export const MainContent: React.FC<MainContentProps> = ({
       />
     </>
   );
-};
+}
