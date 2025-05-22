@@ -1,5 +1,6 @@
+
 import { Video, VideoGenerationParameters } from '@/lib/types';
-import { formatVideoData } from './formatters';
+import { getModelFormatter } from './formatters';
 
 /**
  * Creates a new video prediction
