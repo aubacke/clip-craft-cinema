@@ -1,7 +1,7 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { ModelParameters } from './ModelParameters';
 import { PromptInput } from './PromptInput';
@@ -18,6 +18,13 @@ interface VideoGeneratorFormProps {
   parameters: VideoGenerationParameters;
   onParameterChange: (params: VideoGenerationParameters) => void;
   onVideoCreated: (video: any) => void;
+}
+
+interface ValidationErrors {
+  prompt?: string;
+  model?: string;
+  duration?: string;
+  cfgScale?: string;
 }
 
 const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
@@ -39,8 +46,57 @@ const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
   // Check if we're using a reference image
   const hasReferenceImage = !!parameters.referenceImageId;
   
-  // Form validation
-  const isFormValid = prompt.trim().length > 0 && selectedModelId;
+  // Enhanced form validation
+  const validationErrors = useMemo<ValidationErrors>(() => {
+    const errors: ValidationErrors = {};
+    
+    // Prompt validation
+    if (!prompt.trim()) {
+      errors.prompt = "Please describe your video";
+    } else if (prompt.trim().length < 10) {
+      errors.prompt = "Please provide a more detailed description";
+    }
+    
+    // Model validation
+    if (!selectedModelId) {
+      errors.model = "Please select a model";
+    }
+    
+    // Duration validation
+    if (parameters.duration && parameters.duration < 1) {
+      errors.duration = "Duration must be at least 1 second";
+    }
+    
+    // CFG Scale validation
+    if (parameters.cfg_scale && (parameters.cfg_scale < 1 || parameters.cfg_scale > 15)) {
+      errors.cfgScale = "CFG Scale must be between 1 and 15";
+    }
+    
+    return errors;
+  }, [prompt, selectedModelId, parameters]);
+  
+  // Form validity check
+  const isFormValid = useMemo(() => {
+    return Object.keys(validationErrors).length === 0;
+  }, [validationErrors]);
+
+  // Get appropriate button text based on form state
+  const buttonText = useMemo(() => {
+    if (isGenerating) {
+      return (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Generating Video...
+        </>
+      );
+    } else if (!isFormValid) {
+      if (validationErrors.prompt) return 'Please describe your video';
+      if (validationErrors.model) return 'Please select a model';
+      return 'Please complete all fields correctly';
+    } else {
+      return 'Generate Video';
+    }
+  }, [isGenerating, isFormValid, validationErrors]);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -54,6 +110,12 @@ const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
           disabled={isGenerating}
           maxLength={1000}
         />
+        {validationErrors.prompt && (
+          <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <span>{validationErrors.prompt}</span>
+          </div>
+        )}
       </div>
       
       {/* Reference Image Info - only shown when used */}
@@ -76,6 +138,12 @@ const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
           onModelSelect={onModelSelect}
           disabled={isGenerating}
         />
+        {validationErrors.model && (
+          <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
+            <AlertCircle className="h-4 w-4" />
+            <span>{validationErrors.model}</span>
+          </div>
+        )}
       </div>
       
       {/* Model Parameters */}
@@ -87,6 +155,14 @@ const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
             parameters={parameters}
             onParameterChange={onParameterChange}
           />
+          {(validationErrors.duration || validationErrors.cfgScale) && (
+            <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
+              <AlertCircle className="h-4 w-4" />
+              <span>
+                {validationErrors.duration || validationErrors.cfgScale}
+              </span>
+            </div>
+          )}
         </div>
       )}
       
@@ -96,16 +172,10 @@ const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
           type="submit"
           className="w-full"
           disabled={isGenerating || !isFormValid}
+          variant={!isFormValid ? "secondary" : "default"}
           size="lg"
         >
-          {isGenerating ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating Video...
-            </>
-          ) : (
-            'Generate Video'
-          )}
+          {buttonText}
         </Button>
       </div>
     </form>
