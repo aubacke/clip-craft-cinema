@@ -19,7 +19,7 @@ interface VideoGeneratorFormProps {
   onVideoCreated: (video: any) => void;
 }
 
-export const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
+const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
   prompt,
   onPromptChange,
   selectedModelId,

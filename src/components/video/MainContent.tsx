@@ -18,7 +18,7 @@ interface MainContentProps {
   videoGeneratorComponent?: React.ReactNode; // For lazy-loaded component
 }
 
-export const MainContent = React.memo<MainContentProps>(({
+const MainContent = React.memo<MainContentProps>(({
   selectedFolderReferenceImage,
   showGenerator,
   setShowGenerator,

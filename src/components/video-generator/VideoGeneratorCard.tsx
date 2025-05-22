@@ -9,7 +9,7 @@ interface VideoGeneratorCardProps {
   onVideoCreated: (video: any) => void;
 }
 
-export const VideoGeneratorCard = React.memo<VideoGeneratorCardProps>(({ onVideoCreated }) => {
+const VideoGeneratorCard = React.memo<VideoGeneratorCardProps>(({ onVideoCreated }) => {
   const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID || VIDEO_MODELS[0].id);
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<VideoGenerationParameters>({
