@@ -15,6 +15,12 @@ export const VIDEO_MODELS: VideoModel[] = [
     version: "2ca27df545d8de09bd3ea02ec12f2c6eb8620d6dac03b9e83bbc39eced1866a5"
   },
   {
+    id: "kwaivgi/kling-v1.6-pro",
+    name: "Kling 1.6 Pro",
+    description: "Professional video generation with enhanced visual quality",
+    version: "6dc5f9c41eeaef32368eb8c0b56bb93c06f0e53a3386c690f72bbe01c18d8e14"
+  },
+  {
     id: "luma/ray-2-720p",
     name: "Luma Ray 2",
     description: "High-definition video generation with cinematic quality",
