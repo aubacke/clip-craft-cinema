@@ -30,26 +30,56 @@ export const getModelParameters = (modelId: string): ParameterDefinition[] => {
   const modelSpecificParams = MODEL_PARAMETERS[modelId] || [];
 
   // Map the model parameters from ModelParameterDefinition to ParameterDefinition
-  const mappedModelParams = modelSpecificParams.map((param): ParameterDefinition => ({
-    id: param.name,
-    label: param.label,
-    type: param.type === 'number' || param.type === 'integer' ? 'number' :
-          param.type === 'boolean' ? 'checkbox' :
-          param.type === 'string' && param.enum ? 'select' :
-          param.type === 'image' ? 'image' :
-          param.type,
-    options: param.options || (param.enum ? param.enum.map(value => ({
-      value,
-      label: String(value).charAt(0).toUpperCase() + String(value).slice(1)
-    })) : undefined),
-    min: param.min !== undefined ? param.min : undefined,
-    max: param.max !== undefined ? param.max : undefined,
-    step: param.step !== undefined ? param.step : undefined,
-    defaultValue: param.defaultValue,
-    description: param.description,
-    path: param.name.includes('.') ? param.name : undefined,
-    isAdvanced: param.isAdvanced,
-  }));
+  const mappedModelParams = modelSpecificParams.map((param): ParameterDefinition => {
+    // Map model parameter type to component parameter type
+    let paramType: ParameterDefinition['type'];
+    
+    switch(param.type) {
+      case 'number':
+      case 'integer':
+        paramType = 'number';
+        break;
+      case 'boolean':
+        paramType = 'checkbox';
+        break;
+      case 'string':
+        // If it has options/enum, make it a select
+        paramType = param.options || (param as any).enum ? 'select' : 'text';
+        break;
+      case 'image':
+        paramType = 'image';
+        break;
+      case 'aspect-ratio':
+        paramType = 'radio'; // Map aspect-ratio to radio
+        break;
+      case 'slider':
+        paramType = 'slider';
+        break;
+      default:
+        paramType = 'text'; // Default fallback
+    }
+
+    // Handle options/enum
+    const options = param.options || ((param as any).enum ? 
+      (param as any).enum.map((value: any) => ({
+        value,
+        label: String(value).charAt(0).toUpperCase() + String(value).slice(1)
+      })) : undefined);
+
+    return {
+      id: param.name,
+      label: param.label,
+      type: paramType,
+      options,
+      min: param.min !== undefined ? param.min : undefined,
+      max: param.max !== undefined ? param.max : undefined,
+      step: param.step !== undefined ? param.step : undefined,
+      defaultValue: param.defaultValue,
+      description: param.description,
+      path: param.name.includes('.') ? param.name : undefined,
+      isAdvanced: param.isAdvanced,
+    };
+  });
 
   // Return combined parameters
   return [...commonParams, ...mappedModelParams];

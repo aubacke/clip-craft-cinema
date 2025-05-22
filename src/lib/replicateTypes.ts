@@ -78,13 +78,14 @@ export interface VideoGenerationParameters {
 
 export interface ModelParameterDefinition {
   name: string;
-  type: 'text' | 'number' | 'slider' | 'checkbox' | 'select' | 'image' | 'aspect-ratio';
+  type: 'text' | 'number' | 'slider' | 'checkbox' | 'select' | 'image' | 'aspect-ratio' | 'integer' | 'string' | 'boolean';
   label: string;
   defaultValue?: any;
   min?: number;
   max?: number;
   step?: number;
   options?: {value: string | number, label: string}[];
+  enum?: (string | number)[];
   description?: string;
   isAdvanced?: boolean;
   modelSpecific?: string[];
