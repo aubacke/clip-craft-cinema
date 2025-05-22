@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { Folder } from '@/lib/types';
 import { StatusIndicator } from './StatusIndicator';
+import { SettingsButton } from '@/components/SettingsButton';
 
 interface PageHeaderProps {
   selectedFolderId: string | null;
@@ -54,6 +55,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           onClickProcessing={onClickProcessing}
           onClickCompleted={onClickCompleted}
         />
+        
+        {/* Settings Button */}
+        <SettingsButton />
         
         {!showGenerator && (
           <Button onClick={onCreateNewVideo}>
