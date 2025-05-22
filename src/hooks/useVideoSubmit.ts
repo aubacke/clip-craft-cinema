@@ -5,6 +5,15 @@ import { Video, VideoGenerationParameters } from '@/lib/types';
 import { createVideoPrediction } from '@/services/video/predictionService';
 import { VIDEO_MODELS } from '@/lib/constants';
 import { toast } from 'sonner';
+import { 
+  validateInput, 
+  ValidationRule,
+  ValidationSchema, 
+  withRetry,
+  NetworkError,
+  ValidationError,
+  APIError
+} from '@/lib/errorHandling';
 
 interface UseVideoSubmitProps {
   onVideoCreated: (video: Video) => void;
@@ -15,24 +24,44 @@ interface UseVideoSubmitProps {
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1500; // 1.5 seconds
-const VALIDATION_DEBOUNCE = 300; // 300ms for validation debounce
 
-// Debounce utility function
-const debounce = <F extends (...args: any[]) => any>(
-  func: F,
-  waitFor: number
-) => {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
+// Prompt validation schema
+const promptValidationRules: ValidationRule[] = [
+  {
+    validate: (value) => !!value && typeof value === 'string',
+    message: 'Please enter a description for your video'
+  },
+  {
+    validate: (value) => typeof value === 'string' && value.trim().length > 0,
+    message: 'Description cannot be empty'
+  },
+  {
+    validate: (value) => typeof value === 'string' && value.length <= 1000,
+    message: 'Description is too long (max 1000 characters)'
+  }
+];
 
-  const debounced = (...args: Parameters<F>) => {
-    if (timeout !== null) {
-      clearTimeout(timeout);
-      timeout = null;
-    }
-    timeout = setTimeout(() => func(...args), waitFor);
-  };
+// Model validation schema
+const modelValidationRules: ValidationRule[] = [
+  {
+    validate: (value) => !!value && typeof value === 'string',
+    message: 'Please select a video model'
+  },
+  {
+    validate: (value) => VIDEO_MODELS.some(model => model.id === value),
+    message: 'Selected model is not available'
+  }
+];
 
-  return debounced as (...args: Parameters<F>) => void;
+// Sanitize user inputs to prevent potential issues
+const sanitizeInput = (input: string): string => {
+  if (!input) return '';
+  
+  // Remove potentially dangerous HTML/script tags
+  const withoutTags = input.replace(/<\/?[^>]+(>|$)/g, "");
+  
+  // Normalize whitespace
+  return withoutTags.trim();
 };
 
 export const useVideoSubmit = ({
@@ -42,7 +71,8 @@ export const useVideoSubmit = ({
   parameters
 }: UseVideoSubmitProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   
   // UseRef to avoid stale closures
   const propsRef = useRef({ onVideoCreated, selectedModelId, prompt, parameters });
@@ -52,6 +82,20 @@ export const useVideoSubmit = ({
   useEffect(() => {
     propsRef.current = { onVideoCreated, selectedModelId, prompt, parameters };
   }, [onVideoCreated, selectedModelId, prompt, parameters]);
+  
+  // Monitor online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   // Cleanup function for aborting requests
   useEffect(() => {
@@ -63,162 +107,60 @@ export const useVideoSubmit = ({
     };
   }, []);
   
-  // Debounced validation function
-  const debouncedValidate = useCallback(
-    debounce((): boolean => {
-      // Get current props from ref to avoid stale closures
-      const { prompt, selectedModelId } = propsRef.current;
-      
-      // Clear previous validation error
-      setValidationError(null);
-      
-      // Validate prompt
-      if (!prompt || prompt.trim() === '') {
-        setValidationError('Please enter a description for your video');
-        toast.error('Please enter a description for your video');
-        return false;
-      }
-      
-      // Validate model selection
-      if (!selectedModelId) {
-        setValidationError('Please select a video model');
-        toast.error('Please select a video model');
-        return false;
-      }
-      
-      // Check if model exists
-      const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
-      if (!selectedModel) {
-        setValidationError('Selected video model is not available');
-        toast.error('Selected video model is not available');
-        return false;
-      }
-      
-      // Check prompt length
-      if (prompt.length > 1000) {
-        setValidationError(`Prompt is too long (${prompt.length}/1000 characters)`);
-        toast.error(`Prompt is too long: ${prompt.length}/1000 characters`);
-        return false;
-      }
-      
-      return true;
-    }, VALIDATION_DEBOUNCE),
-    []
-  );
-  
+  // Validate form inputs with more comprehensive rules
   const validateForm = useCallback((): boolean => {
     // Get current props from ref to avoid stale closures
-    const { prompt, selectedModelId } = propsRef.current;
+    const { prompt, selectedModelId, parameters } = propsRef.current;
     
-    // Clear previous validation error
-    setValidationError(null);
+    // Build validation schema based on model and parameters
+    const validationSchema: ValidationSchema = {
+      prompt: promptValidationRules,
+      selectedModelId: modelValidationRules,
+    };
     
-    // Validate prompt
-    if (!prompt || prompt.trim() === '') {
-      setValidationError('Please enter a description for your video');
-      toast.error('Please enter a description for your video');
+    // Add parameter-specific validation rules if needed
+    if (parameters.cfg_scale !== undefined) {
+      validationSchema.cfg_scale = [
+        {
+          validate: (value) => value >= 1 && value <= 30,
+          message: 'CFG Scale must be between 1 and 30'
+        }
+      ];
+    }
+    
+    if (parameters.fps !== undefined) {
+      validationSchema.fps = [
+        {
+          validate: (value) => value >= 1 && value <= 60,
+          message: 'FPS must be between 1 and 60'
+        }
+      ];
+    }
+    
+    // Validate all inputs
+    const result = validateInput(
+      { prompt, selectedModelId, ...parameters }, 
+      validationSchema
+    );
+    
+    // Store validation errors
+    setValidationErrors(result.errors);
+    
+    // If offline, show offline error
+    if (isOffline) {
+      toast.error('You are currently offline. Please check your internet connection.');
       return false;
     }
     
-    // Validate model selection
-    if (!selectedModelId) {
-      setValidationError('Please select a video model');
-      toast.error('Please select a video model');
+    // Show first error message if validation fails
+    if (!result.isValid) {
+      const firstError = Object.values(result.errors)[0];
+      toast.error(firstError);
       return false;
     }
     
-    // Check if model exists
-    const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
-    if (!selectedModel) {
-      setValidationError('Selected video model is not available');
-      toast.error('Selected video model is not available');
-      return false;
-    }
-    
-    // Check prompt length
-    if (prompt.length > 1000) {
-      setValidationError(`Prompt is too long (${prompt.length}/1000 characters)`);
-      toast.error(`Prompt is too long: ${prompt.length}/1000 characters`);
-      return false;
-    }
-    
-    return true;
-  }, []);
-  
-  // Helper function to attempt prediction with retries
-  const attemptPrediction = useCallback(async (
-    parameters: VideoGenerationParameters,
-    modelId: string,
-    modelVersion: string,
-    retriesLeft: number = MAX_RETRIES
-  ) => {
-    try {
-      // Create abort controller for this request
-      abortControllerRef.current = new AbortController();
-      const signal = abortControllerRef.current.signal;
-      
-      // Fix: Check the createVideoPrediction function signature and adjust parameters
-      // Remove signal if it's not expected by the function
-      await createVideoPrediction(parameters, modelId, modelVersion);
-      toast.success("Video generation started successfully");
-      return true;
-    } catch (error: any) { // Typed as any to access properties safely
-      // Handle aborted requests gracefully
-      if (error.name === 'AbortError') {
-        console.log("Video generation request was aborted");
-        return false;
-      }
-      
-      console.error("Error creating prediction:", error);
-      
-      // Determine if this error is retryable
-      const isRetryable = 
-        error.message.includes("429") || // Rate limit
-        error.message.includes("500") || // Server error
-        error.message.includes("502") || // Bad gateway
-        error.message.includes("503") || // Service unavailable
-        error.message.includes("504") || // Gateway timeout
-        error.message.includes("non-2xx") || // Generic non-2xx
-        error.message.includes("timeout") || // Connection timeout
-        error.message.includes("network"); // Network error
-      
-      // If we have retries left and it's a retryable error, retry after delay
-      if (retriesLeft > 0 && isRetryable) {
-        console.log(`Retrying prediction... (${MAX_RETRIES - retriesLeft + 1}/${MAX_RETRIES})`);
-        
-        // Show retry toast
-        toast.info(`Connection issue detected. Retrying... (${MAX_RETRIES - retriesLeft + 1}/${MAX_RETRIES})`);
-        
-        // Wait before retry
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
-        return attemptPrediction(parameters, modelId, modelVersion, retriesLeft - 1);
-      }
-      
-      // If we're out of retries or it's not a retryable error, show appropriate message
-      // More specific error messaging
-      if (error.message.includes("API key") || error.message.includes("Authentication") || 
-          error.message.includes("401") || error.message.includes("403")) {
-        toast.error("Authentication failed. Please check your API key");
-      } else if (error.message.includes("rate limit") || error.message.includes("429")) {
-        toast.error("Rate limit exceeded. Please try again later");
-      } else if (error.message.includes("prompt")) {
-        toast.error("Invalid prompt. Please provide a clearer description");
-      } else if (error.message.includes("network") || error.message.includes("connection")) {
-        toast.error("Network error. Please check your internet connection");
-      } else if (error.message.includes("500") || error.message.includes("502") || 
-                error.message.includes("503") || error.message.includes("504")) {
-        toast.error("Server error. The service might be temporarily unavailable");
-      } else if (error.message.includes("non-2xx")) {
-        toast.error("Service temporarily unavailable. Please try again later");
-      } else {
-        toast.error("Failed to start video generation. Please try again");
-      }
-      
-      return false;
-    } finally {
-      abortControllerRef.current = null;
-    }
-  }, []);
+    return result.isValid;
+  }, [isOffline]);
   
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -232,10 +174,13 @@ export const useVideoSubmit = ({
     try {
       setIsGenerating(true);
       
+      // Sanitize the prompt
+      const sanitizedPrompt = sanitizeInput(prompt);
+      
       const videoId = uuidv4();
       const newVideo: Video = {
         id: videoId,
-        prompt: prompt.trim(),
+        prompt: sanitizedPrompt,
         modelId: selectedModelId,
         status: 'processing',
         createdAt: new Date().toISOString(),
@@ -247,36 +192,94 @@ export const useVideoSubmit = ({
       // Get the selected model's version
       const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
       if (!selectedModel) {
-        throw new Error("Selected model not found");
+        throw new ValidationError("Selected model not found");
       }
       
       // Make sure prompt is properly synchronized in parameters
       const updatedParameters = {
         ...parameters,
-        prompt: prompt.trim()
+        prompt: sanitizedPrompt
       };
       
       // First notify the user that a video is being created (optimistic UI)
       onVideoCreated(newVideo);
       
-      // Attempt prediction with retry logic
-      await attemptPrediction(updatedParameters, selectedModelId, selectedModel.version);
-    } catch (error) {
-      console.error("Error generating video:", error);
-      toast.error("Error starting video generation");
+      try {
+        // Use withRetry for automatic retry with exponential backoff
+        await withRetry(() => 
+          createVideoPrediction(updatedParameters, selectedModelId, selectedModel.version),
+          { maxRetries: MAX_RETRIES, delayMs: RETRY_DELAY, backoffFactor: 2 }
+        );
+        
+        toast.success("Video generation started successfully");
+      } catch (error: any) {
+        console.error("Error generating video:", error);
+        
+        // Provide more specific error messages based on error type
+        if (error instanceof NetworkError) {
+          if (!navigator.onLine) {
+            toast.error("You're offline. Please check your internet connection and try again.", {
+              action: {
+                label: 'Retry',
+                onClick: () => handleSubmit(e)
+              }
+            });
+          } else {
+            toast.error("Network error. Please check your connection and try again.", {
+              action: {
+                label: 'Retry',
+                onClick: () => handleSubmit(e)
+              }
+            });
+          }
+        } else if (error instanceof APIError) {
+          if (error.statusCode === 401 || error.statusCode === 403) {
+            toast.error("Authentication failed. Please check your API key.");
+          } else if (error.statusCode === 429) {
+            toast.error("Rate limit exceeded. Please try again later.");
+          } else if (error.statusCode >= 500) {
+            toast.error("Server error. The service might be temporarily unavailable.", {
+              action: {
+                label: 'Retry',
+                onClick: () => handleSubmit(e)
+              }
+            });
+          } else {
+            toast.error(`API Error: ${error.message}`, {
+              action: {
+                label: 'Retry',
+                onClick: () => handleSubmit(e)
+              }
+            });
+          }
+        } else if (error instanceof ValidationError) {
+          toast.error(`Validation error: ${error.message}`);
+        } else {
+          toast.error("Failed to start video generation. Please try again later.", {
+            action: {
+              label: 'Retry',
+              onClick: () => handleSubmit(e)
+            }
+          });
+        }
+        
+        // Update the optimistic video to show it failed
+        const failedVideo: Video = {
+          ...newVideo,
+          status: 'failed',
+          error: error.message || "Failed to start video generation"
+        };
+        onVideoCreated(failedVideo);
+      }
     } finally {
       setIsGenerating(false);
     }
-  }, [validateForm, attemptPrediction]);
-  
-  // Run validation when props change
-  useEffect(() => {
-    debouncedValidate();
-  }, [prompt, selectedModelId, parameters, debouncedValidate]);
+  }, [validateForm]);
   
   return {
     isGenerating,
     handleSubmit,
-    validationError
+    validationErrors,
+    isOffline
   };
 };
