@@ -1,9 +1,14 @@
-
 export interface VideoModel {
   id: string;
   name: string;
   description: string;
   version: string;
+  isNew?: boolean;
+  isBeta?: boolean;
+  generationTime?: string;
+  bestFor?: string;
+  resolution?: string;
+  extendedDescription?: string;
 }
 
 export interface Video {

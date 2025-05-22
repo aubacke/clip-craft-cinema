@@ -6,31 +6,50 @@ export const VIDEO_MODELS: VideoModel[] = [
     id: "google/veo-2",
     name: "Google Veo 2",
     description: "Google's state-of-the-art text-to-video generation model",
-    version: "accd3bc82888e83d9628378a5b55312c36566a6d33a004ee3a9a35141eb69286"
+    version: "accd3bc82888e83d9628378a5b55312c36566a6d33a004ee3a9a35141eb69286",
+    isNew: true,
+    generationTime: "30-60 seconds",
+    bestFor: "Cinematic scenes and animations",
+    resolution: "720p"
   },
   {
     id: "kwaivgi/kling-v2.0",
     name: "Kling 2.0",
     description: "Generate high-quality videos with advanced motion dynamics",
-    version: "2ca27df545d8de09bd3ea02ec12f2c6eb8620d6dac03b9e83bbc39eced1866a5"
+    version: "2ca27df545d8de09bd3ea02ec12f2c6eb8620d6dac03b9e83bbc39eced1866a5",
+    isNew: false,
+    generationTime: "20-45 seconds",
+    bestFor: "Dynamic motion and effects",
+    resolution: "720p"
   },
   {
     id: "kwaivgi/kling-v1.6-pro",
     name: "Kling 1.6 Pro",
     description: "Professional video generation with enhanced visual quality",
-    version: "6dc5f9c41eeaef32368eb8c0b56bb93c06f0e53a3386c690f72bbe01c18d8e14"
+    version: "6dc5f9c41eeaef32368eb8c0b56bb93c06f0e53a3386c690f72bbe01c18d8e14",
+    isBeta: true,
+    generationTime: "15-40 seconds",
+    bestFor: "Professional content and commercials",
+    resolution: "720p"
   },
   {
     id: "luma/ray-2-720p",
     name: "Luma Ray 2",
     description: "High-definition video generation with cinematic quality",
-    version: "bbf97c586baab12a5955ecd3a3e98d1151218c4633779b5d1f292c915460f9f6"
+    version: "bbf97c586baab12a5955ecd3a3e98d1151218c4633779b5d1f292c915460f9f6",
+    generationTime: "25-50 seconds",
+    bestFor: "Cinematic quality and realism",
+    resolution: "720p HD"
   },
   {
     id: "luma/ray-flash-2-720p",
     name: "Luma Ray Flash",
     description: "Ultra-fast video generation with the Luma engine",
-    version: "4e3c4baefed2b072283c909bb13008aa3cd29f6dacfef95e04a5055f95e29145"
+    version: "4e3c4baefed2b072283c909bb13008aa3cd29f6dacfef95e04a5055f95e29145",
+    generationTime: "5-15 seconds",
+    bestFor: "Quick iterations and concepts",
+    resolution: "720p",
+    extendedDescription: "The fastest model in the collection, optimized for rapid prototyping and quick concept validation while maintaining good quality"
   }
 ];
 
