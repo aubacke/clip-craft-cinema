@@ -30,6 +30,9 @@ const Index = () => {
     closeSidebar,
     showGeneratorPanel,
     
+    // Stats
+    processingVideosCount,
+    completedVideosCount,
   } = useVideoManager();
   
   return (
@@ -52,6 +55,8 @@ const Index = () => {
             onToggleSidebar={toggleSidebar}
             onCreateNewVideo={showGeneratorPanel}
             showGenerator={showGenerator}
+            processingVideosCount={processingVideosCount}
+            completedVideosCount={completedVideosCount}
           />
           
           <MainContent
