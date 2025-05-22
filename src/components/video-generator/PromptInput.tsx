@@ -1,10 +1,8 @@
-
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { SAMPLE_PROMPTS } from '@/lib/constants';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Shuffle } from 'lucide-react';
 
 interface PromptInputProps {
   prompt: string;
@@ -14,6 +12,54 @@ interface PromptInputProps {
   maxLength?: number;
 }
 
+// Categorized sample prompts
+const PROMPT_CATEGORIES = {
+  'Nature': [
+    'Beautiful timelapse of cherry blossoms blooming in spring',
+    'Drone footage flying over mountains with snow-capped peaks',
+    'Ocean waves crashing against rocky cliffs at sunset',
+    'Misty forest at dawn with sunbeams filtering through trees'
+  ],
+  'Animals': [
+    'A cinematic shot of a fluffy corgi running through a field at sunset',
+    'Majestic eagle soaring through mountain valleys',
+    'Playful dolphins jumping in crystal clear ocean water',
+    'Slow motion of a hummingbird hovering near colorful flowers'
+  ],
+  'Urban': [
+    'An animation of a futuristic cityscape with flying cars and neon lights',
+    'Busy street market with vendors and colorful stalls',
+    'Rain falling on city streets with neon reflections',
+    'Time-lapse of traffic flowing through a major intersection at night'
+  ],
+  'Creative': [
+    'Close-up of coffee being poured into a cup in slow motion',
+    'Abstract patterns of colorful paint mixing in water',
+    'Ink drops spreading in clear water creating beautiful patterns',
+    'Sparks flying from a blacksmith forging metal in slow motion'
+  ]
+};
+
+// Function to truncate prompt for display
+const truncatePrompt = (prompt: string, maxLength: number = 30): string => {
+  if (prompt.length <= maxLength) return prompt;
+  
+  // Try to find a good breaking point (space) near the maxLength
+  const breakPoint = prompt.lastIndexOf(' ', maxLength - 3);
+  if (breakPoint > maxLength * 0.6) {
+    // If we found a good breaking point that's not too short
+    return prompt.substring(0, breakPoint) + '...';
+  }
+  
+  // Otherwise just cut at maxLength
+  return prompt.substring(0, maxLength - 3) + '...';
+};
+
+// Get all prompts as a flattened array
+const getAllPrompts = (): string[] => {
+  return Object.values(PROMPT_CATEGORIES).flat();
+};
+
 export const PromptInput: React.FC<PromptInputProps> = ({ 
   prompt, 
   onPromptChange,
@@ -21,12 +67,28 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   disabled = false,
   maxLength = 1000
 }) => {
+  // State for shuffled prompts
+  const [shuffledPrompts, setShuffledPrompts] = useState<string[]>([]);
+  
+  // Function to shuffle prompts and get a subset
+  const shufflePrompts = useCallback(() => {
+    const allPrompts = getAllPrompts();
+    const shuffled = [...allPrompts].sort(() => Math.random() - 0.5);
+    setShuffledPrompts(shuffled.slice(0, 5));
+  }, []);
+  
+  // Initialize shuffled prompts on component mount
+  useEffect(() => {
+    shufflePrompts();
+  }, [shufflePrompts]);
+
   const handleSelectSamplePrompt = () => {
-    const randomIndex = Math.floor(Math.random() * SAMPLE_PROMPTS.length);
-    onPromptChange(SAMPLE_PROMPTS[randomIndex]);
+    const allPrompts = getAllPrompts();
+    const randomIndex = Math.floor(Math.random() * allPrompts.length);
+    onPromptChange(allPrompts[randomIndex]);
   };
 
-  const useSamplePrompt = React.useCallback((samplePrompt: string) => {
+  const useSamplePrompt = useCallback((samplePrompt: string) => {
     onPromptChange(samplePrompt);
   }, [onPromptChange]);
 
@@ -59,21 +121,32 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           {prompt.length}/{maxLength} characters
         </div>
         
-        <div className="flex flex-col space-y-1">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-            <Sparkles className="h-3 w-3" />
-            <span>Quick Start Ideas:</span>
+        <div className="flex flex-col space-y-2">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Sparkles className="h-3 w-3" />
+              <span>Quick Start Ideas:</span>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-6 text-xs px-2 py-0 flex items-center" 
+              onClick={shufflePrompts}
+              disabled={disabled}
+            >
+              <Shuffle className="h-3 w-3 mr-1" /> Shuffle
+            </Button>
           </div>
           <div className="flex flex-wrap gap-2">
-            {SAMPLE_PROMPTS.slice(0, 3).map((sample, index) => (
+            {shuffledPrompts.map((sample, index) => (
               <Badge 
                 key={index}
                 variant="outline" 
                 interactive={true}
-                className="hover:bg-primary hover:text-primary-foreground"
+                className="hover:bg-primary hover:text-primary-foreground transition-colors"
                 onClick={() => useSamplePrompt(sample)}
               >
-                {sample.length > 30 ? `${sample.substring(0, 30)}...` : sample}
+                {truncatePrompt(sample, 35)}
               </Badge>
             ))}
           </div>
