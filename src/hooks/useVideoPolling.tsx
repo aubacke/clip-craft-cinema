@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Video } from '@/lib/types';
 import { checkVideoPredictionStatus } from '@/services/video/predictionService';
 import { toast } from 'sonner';
@@ -20,13 +20,13 @@ export const useVideoPolling = (videos: Video[]) => {
   const errorCountRef = useRef<Record<string, number>>({});
   
   // Cleanup function to clear any active intervals
-  const cleanup = () => {
+  const cleanup = useCallback(() => {
     if (intervalRef.current !== null) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
       isPollingRef.current = false;
     }
-  };
+  }, []);
   
   // Poll for video status updates
   useEffect(() => {
@@ -167,7 +167,7 @@ export const useVideoPolling = (videos: Video[]) => {
     
     // Clean up the interval when the component unmounts or when videos change
     return () => cleanup();
-  }, [videos]);
+  }, [videos, cleanup]);
   
   return updatedVideos;
 };
