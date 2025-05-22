@@ -8,7 +8,7 @@ interface StatusBadgeProps {
   error?: string;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, error }) => {
+export const StatusBadge: React.FC<StatusBadgeProps> = React.memo(({ status, error }) => {
   switch(status) {
     case 'processing':
       return (
@@ -39,4 +39,6 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, error }) => {
         </Badge>
       );
   }
-};
+});
+
+StatusBadge.displayName = 'StatusBadge';

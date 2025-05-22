@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Loader2, AlertCircle, Volume2, VolumeX, Play, Pause } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 
@@ -9,14 +9,14 @@ interface VideoCardMediaProps {
   error?: string;
 }
 
-export const VideoCardMedia: React.FC<VideoCardMediaProps> = ({ status, url, error }) => {
+export const VideoCardMedia: React.FC<VideoCardMediaProps> = React.memo(({ status, url, error }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isHovering, setIsHovering] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  const togglePlay = () => {
+  const togglePlay = useCallback(() => {
     if (videoRef.current) {
       if (isPlaying) {
         videoRef.current.pause();
@@ -25,20 +25,26 @@ export const VideoCardMedia: React.FC<VideoCardMediaProps> = ({ status, url, err
       }
       setIsPlaying(!isPlaying);
     }
-  };
+  }, [isPlaying]);
 
-  const toggleMute = () => {
+  const toggleMute = useCallback(() => {
     if (videoRef.current) {
       videoRef.current.muted = !isMuted;
       setIsMuted(!isMuted);
     }
-  };
+  }, [isMuted]);
+  
+  const handleMouseEnter = useCallback(() => setIsHovering(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovering(false), []);
+  const handleLoadedData = useCallback(() => setIsLoading(false), []);
+  const handlePlay = useCallback(() => setIsPlaying(true), []);
+  const handlePause = useCallback(() => setIsPlaying(false), []);
 
   return (
     <div 
       className="relative aspect-video bg-muted overflow-hidden rounded-t-md"
-      onMouseEnter={() => setIsHovering(true)}
-      onMouseLeave={() => setIsHovering(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       <StatusBadge status={status} error={error} />
       
@@ -75,9 +81,9 @@ export const VideoCardMedia: React.FC<VideoCardMediaProps> = ({ status, url, err
             autoPlay={false}
             loop
             muted={isMuted}
-            onLoadedData={() => setIsLoading(false)}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
+            onLoadedData={handleLoadedData}
+            onPlay={handlePlay}
+            onPause={handlePause}
           />
           
           {/* Playback controls overlay that appears on hover */}
@@ -117,4 +123,6 @@ export const VideoCardMedia: React.FC<VideoCardMediaProps> = ({ status, url, err
       )}
     </div>
   );
-};
+});
+
+VideoCardMedia.displayName = 'VideoCardMedia';

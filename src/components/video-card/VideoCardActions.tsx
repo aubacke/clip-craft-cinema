@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { 
   MoreVertical, 
   Folder, 
@@ -23,12 +23,26 @@ interface VideoCardActionsProps {
   folders: FolderType[];
 }
 
-export const VideoCardActions: React.FC<VideoCardActionsProps> = ({
+export const VideoCardActions = React.memo<VideoCardActionsProps>(({
   video,
   onDelete,
   onMoveToFolder,
   folders
 }) => {
+  // Use useCallback to memoize handlers
+  const handleDelete = useCallback(() => {
+    onDelete(video.id);
+  }, [onDelete, video.id]);
+  
+  const handleMoveToAllVideos = useCallback(() => {
+    onMoveToFolder(video.id, null);
+  }, [onMoveToFolder, video.id]);
+  
+  // Create a factory function for folder moves
+  const handleMoveToFolder = useCallback((folderId: string) => {
+    return () => onMoveToFolder(video.id, folderId);
+  }, [onMoveToFolder, video.id]);
+
   return (
     <div className="flex items-center">
       <VideoDownloadButton 
@@ -44,12 +58,12 @@ export const VideoCardActions: React.FC<VideoCardActionsProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => onDelete(video.id)}>
+          <DropdownMenuItem onClick={handleDelete}>
             <Trash2 className="mr-2 h-4 w-4" />
             Delete
           </DropdownMenuItem>
           
-          <DropdownMenuItem onClick={() => onMoveToFolder(video.id, null)}>
+          <DropdownMenuItem onClick={handleMoveToAllVideos}>
             <Folder className="mr-2 h-4 w-4" />
             Move to All Videos
           </DropdownMenuItem>
@@ -59,7 +73,7 @@ export const VideoCardActions: React.FC<VideoCardActionsProps> = ({
             .map(folder => (
               <DropdownMenuItem 
                 key={folder.id}
-                onClick={() => onMoveToFolder(video.id, folder.id)}
+                onClick={handleMoveToFolder(folder.id)}
               >
                 {folder.isReferenceFolder ? (
                   <Image className="mr-2 h-4 w-4" />
@@ -74,4 +88,6 @@ export const VideoCardActions: React.FC<VideoCardActionsProps> = ({
       </DropdownMenu>
     </div>
   );
-};
+});
+
+VideoCardActions.displayName = 'VideoCardActions';

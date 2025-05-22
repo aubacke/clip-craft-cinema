@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Download } from 'lucide-react';
 import { toast } from 'sonner';
@@ -10,10 +10,10 @@ interface VideoDownloadButtonProps {
   status: string;
 }
 
-export const VideoDownloadButton: React.FC<VideoDownloadButtonProps> = ({ url, videoId, status }) => {
+export const VideoDownloadButton = React.memo<VideoDownloadButtonProps>(({ url, videoId, status }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const handleDownload = async () => {
+  const handleDownload = useCallback(async () => {
     // Only allow download for completed videos with a URL
     if (!url || status !== 'completed') return;
     
@@ -54,7 +54,7 @@ export const VideoDownloadButton: React.FC<VideoDownloadButtonProps> = ({ url, v
     } finally {
       setIsDownloading(false);
     }
-  };
+  }, [url, videoId, status]);
 
   // Only show download button for completed videos with a URL
   if (status !== 'completed' || !url) {
@@ -77,4 +77,6 @@ export const VideoDownloadButton: React.FC<VideoDownloadButtonProps> = ({ url, v
       )}
     </Button>
   );
-};
+});
+
+VideoDownloadButton.displayName = 'VideoDownloadButton';

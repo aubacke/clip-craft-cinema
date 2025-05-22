@@ -1,5 +1,5 @@
 
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useCallback } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { PageHeader } from '@/components/video/PageHeader';
 import { MainContent } from '@/components/video/MainContent';
@@ -45,12 +45,12 @@ const Index = () => {
     </Suspense>
   ) : null;
   
-  // Handler for navigating to processing videos
-  const handleNavigateToProcessing = () => {
+  // Handler for navigating to processing videos - using useCallback
+  const handleNavigateToProcessing = useCallback(() => {
     // This would be implemented to filter/show processing videos
     console.log("Navigate to processing videos");
     // Could implement: setSelectedFilter('processing');
-  };
+  }, []);
   
   return (
     <div className="flex min-h-screen bg-background">

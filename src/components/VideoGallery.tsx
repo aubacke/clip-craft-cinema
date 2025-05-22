@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import VideoCard from './VideoCard';
 import { Video, Folder } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -19,9 +19,12 @@ const VideoGallery = React.memo<VideoGalleryProps>(({
   onDeleteVideo,
   onMoveVideoToFolder,
 }) => {
-  const filteredVideos = selectedFolderId
-    ? videos.filter(video => video.folderId === selectedFolderId)
-    : videos.filter(video => !video.folderId);
+  // Memoize filtered videos to prevent unnecessary calculations
+  const filteredVideos = useMemo(() => {
+    return selectedFolderId
+      ? videos.filter(video => video.folderId === selectedFolderId)
+      : videos.filter(video => !video.folderId);
+  }, [videos, selectedFolderId]);
 
   if (filteredVideos.length === 0) {
     return (

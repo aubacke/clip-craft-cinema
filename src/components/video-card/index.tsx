@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { 
   HoverCard, 
@@ -28,13 +28,26 @@ const VideoCard = React.memo<VideoCardProps>(({
   folders
 }) => {
   const [isHovering, setIsHovering] = useState(false);
-  const modelName = VIDEO_MODELS.find(m => m.id === video.modelId)?.name || video.modelId;
-  const createdAt = new Date(video.createdAt);
   
-  // Check if this video has a reference image folder
-  const referenceFolder = video.folderId 
-    ? folders.find(f => f.id === video.folderId && f.isReferenceFolder) 
-    : null;
+  // Memoized values
+  const modelName = useMemo(() => 
+    VIDEO_MODELS.find(m => m.id === video.modelId)?.name || video.modelId,
+    [video.modelId]
+  );
+  
+  const createdAt = useMemo(() => new Date(video.createdAt), [video.createdAt]);
+  
+  // Memoized reference folder check
+  const referenceFolder = useMemo(() => 
+    video.folderId 
+      ? folders.find(f => f.id === video.folderId && f.isReferenceFolder) 
+      : null,
+    [video.folderId, folders]
+  );
+  
+  // Event handlers with useCallback
+  const handleMouseEnter = useCallback(() => setIsHovering(true), []);
+  const handleMouseLeave = useCallback(() => setIsHovering(false), []);
   
   return (
     <HoverCard openDelay={300} closeDelay={100}>
@@ -45,8 +58,8 @@ const VideoCard = React.memo<VideoCardProps>(({
             video.status === 'failed' && "border-destructive/50",
             isHovering && "scale-[1.02] shadow-xl"
           )}
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
         >
           <VideoCardMedia 
             status={video.status}
