@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Video, Folder } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useVideoPolling } from '@/hooks/useVideoPolling';
@@ -18,6 +17,18 @@ import {
   getReferenceImageByFolderId
 } from '@/services/video/referenceImageService';
 import { toast } from 'sonner';
+import React from 'react';
+
+// Wrap local storage operations with error handling
+const safeLocalStorageOperation = <T,>(operation: () => T, fallback: T): T => {
+  try {
+    return operation();
+  } catch (error) {
+    console.error("LocalStorage operation failed:", error);
+    toast.error("Storage operation failed. Your data may not be saved.");
+    return fallback;
+  }
+};
 
 export const useVideoManager = () => {
   // Data state
@@ -33,22 +44,38 @@ export const useVideoManager = () => {
     isLoading: false
   });
   
+  // Keep track of mounted state to prevent state updates after unmount
+  const isMounted = useRef(true);
+  
+  // Safe state setter functions
+  const safeSetVideos = useCallback((videosOrUpdater: Video[] | ((prev: Video[]) => Video[])) => {
+    if (!isMounted.current) return;
+    setVideos(videosOrUpdater);
+  }, []);
+  
   // Load data from local storage
   useEffect(() => {
-    setVideos(getVideosFromLocalStorage());
-    setFolders(getFoldersFromLocalStorage());
-    setReferenceImages(getReferenceImagesFromLocalStorage());
-  }, []);
+    safeLocalStorageOperation(() => {
+      safeSetVideos(getVideosFromLocalStorage());
+      setFolders(getFoldersFromLocalStorage());
+      setReferenceImages(getReferenceImagesFromLocalStorage());
+    }, undefined);
+    
+    // Cleanup function to handle component unmount
+    return () => {
+      isMounted.current = false;
+    };
+  }, [safeSetVideos]);
   
   // Use the video polling hook to update video statuses
   const updatedVideos = useVideoPolling(videos);
   
   // Update videos when polling gives us updates
   useEffect(() => {
-    setVideos(updatedVideos);
-  }, [updatedVideos]);
+    safeSetVideos(updatedVideos);
+  }, [updatedVideos, safeSetVideos]);
   
-  // Computed properties with useMemo
+  // Computed properties with useMemo with stable dependencies
   const processingVideosCount = useMemo(() => 
     videos.filter(video => video.status === 'processing').length, 
     [videos]
@@ -66,31 +93,41 @@ export const useVideoManager = () => {
   
   // Get the current folder's reference image if applicable
   const selectedFolderReferenceImage = useMemo(() => 
-    selectedFolderId ? getReferenceImageByFolderId(selectedFolderId) : null,
+    selectedFolderId ? safeLocalStorageOperation(
+      () => getReferenceImageByFolderId(selectedFolderId), 
+      null
+    ) : null,
     [selectedFolderId]
   );
   
-  // Filtered videos based on selected folder
-  const filteredVideos = useMemo(() => 
-    selectedFolderId
-      ? videos.filter(video => video.folderId === selectedFolderId)
-      : videos.filter(video => !video.folderId),
-    [videos, selectedFolderId]
-  );
+  // Filtered videos based on selected folder - optimized computation
+  const filteredVideos = useMemo(() => {
+    if (selectedFolderId) {
+      return videos.filter(video => video.folderId === selectedFolderId);
+    }
+    return videos.filter(video => !video.folderId);
+  }, [videos, selectedFolderId]);
   
-  // Handler functions with useCallback
+  // Handler functions with useCallback and proper dependencies
   const handleVideoCreated = useCallback((video: Video) => {
-    const newVideos = [...videos, video];
-    setVideos(newVideos);
-    saveVideoToLocalStorage(video);
+    safeSetVideos(prevVideos => [...prevVideos, video]);
+    
+    safeLocalStorageOperation(() => {
+      saveVideoToLocalStorage(video);
+    }, undefined);
+    
     setUiState(prev => ({ ...prev, showGenerator: false }));
-  }, [videos]);
+  }, [safeSetVideos]);
   
   const handleDeleteVideo = useCallback((id: string) => {
-    setVideos(prev => prev.filter(v => v.id !== id));
-    deleteVideoFromLocalStorage(id);
+    safeSetVideos(prev => prev.filter(v => v.id !== id));
+    
+    safeLocalStorageOperation(() => {
+      deleteVideoFromLocalStorage(id);
+    }, undefined);
+    
     toast.success("Video deleted");
-  }, []);
+  }, [safeSetVideos]);
   
   const handleCreateFolder = useCallback((name: string) => {
     const newFolder = {
@@ -100,25 +137,31 @@ export const useVideoManager = () => {
     };
     
     setFolders(prev => [...prev, newFolder]);
-    saveFolderToLocalStorage(newFolder);
+    
+    safeLocalStorageOperation(() => {
+      saveFolderToLocalStorage(newFolder);
+    }, undefined);
+    
     toast.success(`Folder "${name}" created`);
   }, []);
   
   const handleMoveVideoToFolder = useCallback((videoId: string, folderId: string | null) => {
-    setVideos(prev => 
+    safeSetVideos(prev => 
       prev.map(v => 
         v.id === videoId ? { ...v, folderId: folderId || undefined } : v
       )
     );
     
-    moveVideoToFolder(videoId, folderId);
+    safeLocalStorageOperation(() => {
+      moveVideoToFolder(videoId, folderId);
+    }, undefined);
     
     const folderName = folderId 
       ? folders.find(f => f.id === folderId)?.name 
       : "All Videos";
     
     toast.success(`Video moved to ${folderName}`);
-  }, [folders]);
+  }, [safeSetVideos, folders]);
   
   // UI state handlers with useCallback
   const toggleSidebar = useCallback(() => {
@@ -131,8 +174,7 @@ export const useVideoManager = () => {
   
   const showGeneratorPanel = useCallback(() => {
     setUiState(prev => ({ ...prev, showGenerator: true }));
-    closeSidebar();
-  }, [closeSidebar]);
+  }, []);
   
   const hideGeneratorPanel = useCallback(() => {
     setUiState(prev => ({ ...prev, showGenerator: false }));
@@ -174,3 +216,6 @@ export const useVideoManager = () => {
     failedVideosCount
   };
 };
+
+// Export a memoized version for additional performance
+export const MemoizedVideoManager = React.memo(useVideoManager);

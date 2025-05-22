@@ -1,5 +1,5 @@
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Video, VideoGenerationParameters } from '@/lib/types';
 import { createVideoPrediction } from '@/services/video/predictionService';
@@ -15,6 +15,25 @@ interface UseVideoSubmitProps {
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1500; // 1.5 seconds
+const VALIDATION_DEBOUNCE = 300; // 300ms for validation debounce
+
+// Debounce utility function
+const debounce = <F extends (...args: any[]) => any>(
+  func: F,
+  waitFor: number
+) => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  const debounced = (...args: Parameters<F>) => {
+    if (timeout !== null) {
+      clearTimeout(timeout);
+      timeout = null;
+    }
+    timeout = setTimeout(() => func(...args), waitFor);
+  };
+
+  return debounced as (...args: Parameters<F>) => void;
+};
 
 export const useVideoSubmit = ({
   onVideoCreated,
@@ -25,7 +44,72 @@ export const useVideoSubmit = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   
+  // UseRef to avoid stale closures
+  const propsRef = useRef({ onVideoCreated, selectedModelId, prompt, parameters });
+  const abortControllerRef = useRef<AbortController | null>(null);
+  
+  // Update ref when props change
+  useEffect(() => {
+    propsRef.current = { onVideoCreated, selectedModelId, prompt, parameters };
+  }, [onVideoCreated, selectedModelId, prompt, parameters]);
+  
+  // Cleanup function for aborting requests
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
+  
+  // Debounced validation function
+  const debouncedValidate = useCallback(
+    debounce((): boolean => {
+      // Get current props from ref to avoid stale closures
+      const { prompt, selectedModelId } = propsRef.current;
+      
+      // Clear previous validation error
+      setValidationError(null);
+      
+      // Validate prompt
+      if (!prompt || prompt.trim() === '') {
+        setValidationError('Please enter a description for your video');
+        toast.error('Please enter a description for your video');
+        return false;
+      }
+      
+      // Validate model selection
+      if (!selectedModelId) {
+        setValidationError('Please select a video model');
+        toast.error('Please select a video model');
+        return false;
+      }
+      
+      // Check if model exists
+      const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
+      if (!selectedModel) {
+        setValidationError('Selected video model is not available');
+        toast.error('Selected video model is not available');
+        return false;
+      }
+      
+      // Check prompt length
+      if (prompt.length > 1000) {
+        setValidationError(`Prompt is too long (${prompt.length}/1000 characters)`);
+        toast.error(`Prompt is too long: ${prompt.length}/1000 characters`);
+        return false;
+      }
+      
+      return true;
+    }, VALIDATION_DEBOUNCE),
+    []
+  );
+  
   const validateForm = useCallback((): boolean => {
+    // Get current props from ref to avoid stale closures
+    const { prompt, selectedModelId } = propsRef.current;
+    
     // Clear previous validation error
     setValidationError(null);
     
@@ -59,7 +143,7 @@ export const useVideoSubmit = ({
     }
     
     return true;
-  }, [prompt, selectedModelId]);
+  }, []);
   
   // Helper function to attempt prediction with retries
   const attemptPrediction = useCallback(async (
@@ -69,10 +153,20 @@ export const useVideoSubmit = ({
     retriesLeft: number = MAX_RETRIES
   ) => {
     try {
-      await createVideoPrediction(parameters, modelId, modelVersion);
+      // Create abort controller for this request
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
+      
+      await createVideoPrediction(parameters, modelId, modelVersion, signal);
       toast.success("Video generation started successfully");
       return true;
     } catch (error) {
+      // Handle aborted requests gracefully
+      if (error.name === 'AbortError') {
+        console.log("Video generation request was aborted");
+        return false;
+      }
+      
       console.error("Error creating prediction:", error);
       
       // Determine if this error is retryable
@@ -119,11 +213,16 @@ export const useVideoSubmit = ({
       }
       
       return false;
+    } finally {
+      abortControllerRef.current = null;
     }
   }, []);
   
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Get current props from ref to avoid stale closures
+    const { onVideoCreated, selectedModelId, prompt, parameters } = propsRef.current;
     
     // Validate form inputs
     if (!validateForm()) return;
@@ -166,7 +265,12 @@ export const useVideoSubmit = ({
     } finally {
       setIsGenerating(false);
     }
-  }, [validateForm, prompt, selectedModelId, parameters, onVideoCreated, attemptPrediction]);
+  }, [validateForm, attemptPrediction]);
+  
+  // Run validation when props change
+  useEffect(() => {
+    debouncedValidate();
+  }, [prompt, selectedModelId, parameters, debouncedValidate]);
   
   return {
     isGenerating,
