@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Loader2, AlertCircle, Volume2, VolumeX, Play, Pause } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 
 interface VideoCardMediaProps {
@@ -11,9 +11,35 @@ interface VideoCardMediaProps {
 
 export const VideoCardMedia: React.FC<VideoCardMediaProps> = ({ status, url, error }) => {
   const [isLoading, setIsLoading] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [isHovering, setIsHovering] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const toggleMute = () => {
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
+  };
 
   return (
-    <div className="relative aspect-video bg-muted">
+    <div 
+      className="relative aspect-video bg-muted overflow-hidden rounded-t-md"
+      onMouseEnter={() => setIsHovering(true)}
+      onMouseLeave={() => setIsHovering(false)}
+    >
       <StatusBadge status={status} error={error} />
       
       {status === 'processing' ? (
@@ -42,14 +68,47 @@ export const VideoCardMedia: React.FC<VideoCardMediaProps> = ({ status, url, err
             </div>
           )}
           <video
+            ref={videoRef}
             src={url}
             className="w-full h-full object-cover"
-            controls
+            controls={false}
             autoPlay={false}
             loop
-            muted
+            muted={isMuted}
             onLoadedData={() => setIsLoading(false)}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
           />
+          
+          {/* Playback controls overlay that appears on hover */}
+          {!isLoading && isHovering && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity duration-200">
+              <div className="flex gap-4">
+                <button 
+                  onClick={togglePlay}
+                  className="bg-white/20 hover:bg-white/30 rounded-full p-3 transition-colors duration-200"
+                  aria-label={isPlaying ? "Pause video" : "Play video"}
+                >
+                  {isPlaying ? (
+                    <Pause className="h-6 w-6 text-white" />
+                  ) : (
+                    <Play className="h-6 w-6 text-white" />
+                  )}
+                </button>
+                <button 
+                  onClick={toggleMute}
+                  className="bg-white/20 hover:bg-white/30 rounded-full p-3 transition-colors duration-200"
+                  aria-label={isMuted ? "Unmute video" : "Mute video"}
+                >
+                  {isMuted ? (
+                    <VolumeX className="h-6 w-6 text-white" />
+                  ) : (
+                    <Volume2 className="h-6 w-6 text-white" />
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="absolute inset-0 flex items-center justify-center bg-secondary/50">
