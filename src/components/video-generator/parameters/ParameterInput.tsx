@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { X, Upload } from 'lucide-react';
-import { FormControl, FormDescription, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { FormControl, FormDescription, FormItem, FormLabel } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import { ParameterDefinition } from './types';
+import { ValidationMessage } from '../shared/ValidationMessage';
 
 interface ParameterInputProps {
   parameter: ParameterDefinition;
@@ -22,9 +23,10 @@ interface ParameterInputProps {
   onRemoveImage?: () => void;
   error?: string;
   disabled?: boolean;
+  dragActive?: boolean;
 }
 
-export const ParameterInput: React.FC<ParameterInputProps> = ({
+export const ParameterInput = React.memo<ParameterInputProps>(({
   parameter,
   value,
   onChange,
@@ -32,24 +34,29 @@ export const ParameterInput: React.FC<ParameterInputProps> = ({
   onImageUpload,
   onRemoveImage,
   error,
-  disabled = false
+  disabled = false,
+  dragActive = false
 }) => {
   const handleSliderChange = (values: number[]) => {
     onChange(values[0]);
   };
 
+  const hasError = !!error;
+
   return (
-    <FormItem className={cn('space-y-1', parameter.isAdvanced ? 'opacity-90' : '')}>
+    <FormItem className={cn(
+      'space-y-1', 
+      parameter.isAdvanced ? 'opacity-90' : '',
+      hasError ? 'pb-4' : ''
+    )}>
       <div className="flex justify-between">
-        <FormLabel className="text-sm">
+        <FormLabel className={cn(
+          "text-sm",
+          hasError && "text-destructive"
+        )}>
           {parameter.label}
           {parameter.isAdvanced && <span className="ml-1 text-xs text-muted-foreground">(Advanced)</span>}
         </FormLabel>
-        {error && (
-          <FormMessage className="text-xs" aria-live="polite">
-            {error}
-          </FormMessage>
-        )}
       </div>
       <FormControl>
         {parameter.type === 'text' && (
@@ -58,7 +65,11 @@ export const ParameterInput: React.FC<ParameterInputProps> = ({
             onChange={(e) => onChange(e.target.value)}
             disabled={disabled}
             placeholder={`Enter ${parameter.label.toLowerCase()}`}
-            className="min-h-24"
+            className={cn(
+              "min-h-24",
+              hasError && "border-destructive focus-visible:ring-destructive"
+            )}
+            aria-invalid={hasError}
           />
         )}
         {parameter.type === 'number' && (
@@ -70,18 +81,23 @@ export const ParameterInput: React.FC<ParameterInputProps> = ({
             max={parameter.max}
             step={parameter.step}
             disabled={disabled}
+            className={cn(hasError && "border-destructive focus-visible:ring-destructive")}
+            aria-invalid={hasError}
           />
         )}
         {parameter.type === 'slider' && (
           <div className="pt-3 pb-2 pl-0.5">
             <Slider
               defaultValue={[value !== undefined ? value : (parameter.defaultValue || 0)]}
+              value={[value !== undefined ? value : (parameter.defaultValue || 0)]}
               min={parameter.min}
               max={parameter.max}
               step={parameter.step}
               onValueChange={handleSliderChange}
               disabled={disabled}
               aria-label={parameter.label}
+              className={cn(hasError && "border-destructive focus-visible:ring-destructive")}
+              aria-invalid={hasError}
             />
             <div className="flex justify-between mt-1">
               <span className="text-xs text-muted-foreground">{parameter.min}</span>
@@ -96,7 +112,7 @@ export const ParameterInput: React.FC<ParameterInputProps> = ({
             onValueChange={onChange}
             disabled={disabled}
           >
-            <SelectTrigger>
+            <SelectTrigger className={cn(hasError && "border-destructive focus-visible:ring-destructive")}>
               <SelectValue placeholder={`Select ${parameter.label.toLowerCase()}`} />
             </SelectTrigger>
             <SelectContent>
@@ -124,7 +140,11 @@ export const ParameterInput: React.FC<ParameterInputProps> = ({
           >
             {parameter.options.map((option) => (
               <div key={String(option.value)} className="flex items-center space-x-2">
-                <RadioGroupItem value={String(option.value)} id={`${parameter.id}-${option.value}`} />
+                <RadioGroupItem 
+                  value={String(option.value)} 
+                  id={`${parameter.id}-${option.value}`}
+                  className={cn(hasError && "border-destructive focus-visible:ring-destructive")}
+                />
                 <Label htmlFor={`${parameter.id}-${option.value}`} className="text-sm">
                   {option.label}
                 </Label>
@@ -160,15 +180,29 @@ export const ParameterInput: React.FC<ParameterInputProps> = ({
                   htmlFor="image-upload"
                   className={cn(
                     "flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer bg-secondary/20 hover:bg-secondary/30 transition-colors",
-                    disabled && "opacity-50 cursor-not-allowed hover:bg-secondary/20"
+                    disabled && "opacity-50 cursor-not-allowed hover:bg-secondary/20",
+                    dragActive && "border-primary bg-primary/5",
+                    hasError && "border-destructive"
                   )}
                 >
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                    <p className="mb-2 text-sm text-muted-foreground">
-                      <span className="font-semibold">Click to upload</span> or drag and drop
+                    <Upload className={cn(
+                      "w-8 h-8 mb-2",
+                      hasError ? "text-destructive" : "text-muted-foreground"
+                    )} />
+                    <p className={cn(
+                      "mb-2 text-sm",
+                      hasError ? "text-destructive" : "text-muted-foreground"
+                    )}>
+                      <span className="font-semibold">
+                        {dragActive ? "Drop image here" : "Click to upload"}
+                      </span>
+                      {!dragActive && " or drag and drop"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className={cn(
+                      "text-xs",
+                      hasError ? "text-destructive" : "text-muted-foreground"
+                    )}>
                       PNG, JPG or WEBP (max. 5MB)
                     </p>
                   </div>
@@ -183,6 +217,7 @@ export const ParameterInput: React.FC<ParameterInputProps> = ({
                 </label>
               </div>
             )}
+            {error && <ValidationMessage message={error} className="mt-2" />}
           </div>
         )}
       </FormControl>
@@ -193,4 +228,6 @@ export const ParameterInput: React.FC<ParameterInputProps> = ({
       )}
     </FormItem>
   );
-};
+});
+
+ParameterInput.displayName = 'ParameterInput';

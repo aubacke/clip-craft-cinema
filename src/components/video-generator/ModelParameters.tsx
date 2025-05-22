@@ -4,6 +4,8 @@ import { Card } from '@/components/ui/card';
 import { ParameterSection } from './parameters/ParameterSection';
 import { VideoGenerationParameters } from '@/lib/types';
 import { getModelParameters } from './parameters/modelDefinitions';
+import { useImageUpload } from './hooks/useImageUpload';
+import { ValidationMessage } from './shared/ValidationMessage';
 
 export interface ModelParametersProps {
   selectedModelId: string;
@@ -13,7 +15,7 @@ export interface ModelParametersProps {
   disabled?: boolean;
 }
 
-export const ModelParameters: React.FC<ModelParametersProps> = ({
+export const ModelParameters = React.memo<ModelParametersProps>(({
   selectedModelId,
   parameters,
   onParameterChange,
@@ -29,35 +31,38 @@ export const ModelParameters: React.FC<ModelParametersProps> = ({
     });
   }, [onParameterChange, parameters]);
 
-  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-
-  const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-
-      // You might also want to handle storing the image file itself
+  // Use the custom image upload hook
+  const { 
+    imagePreviewUrl, 
+    dragActive, 
+    error: imageError, 
+    handleImageUpload, 
+    handleRemoveImage,
+    handleDrag,
+    handleDrop
+  } = useImageUpload({
+    onChange: (file) => {
       onParameterChange({
         ...parameters,
         image: file,
       });
     }
-  }, [onParameterChange, parameters]);
+  });
 
-  const handleRemoveImage = useCallback(() => {
-    setImagePreviewUrl(null);
-    onParameterChange({
-      ...parameters,
-      image: null,
-    });
-  }, [onParameterChange, parameters]);
+  // Combine custom validation errors with provided errors
+  const combinedErrors = {
+    ...errors,
+    ...(imageError ? { image: imageError } : {})
+  };
 
   return (
-    <Card className="p-4">
+    <Card 
+      className={`p-4 ${dragActive ? 'border-primary border-2' : ''}`}
+      onDragEnter={handleDrag}
+      onDragOver={handleDrag}
+      onDragLeave={handleDrag}
+      onDrop={handleDrop}
+    >
       <ParameterSection
         parameters={modelParams}
         values={parameters}
@@ -65,9 +70,12 @@ export const ModelParameters: React.FC<ModelParametersProps> = ({
         imagePreviewUrl={imagePreviewUrl}
         onImageUpload={handleImageUpload}
         onRemoveImage={handleRemoveImage}
-        errors={errors}
+        errors={combinedErrors}
         disabled={disabled}
+        dragActive={dragActive}
       />
     </Card>
   );
-};
+});
+
+ModelParameters.displayName = 'ModelParameters';
