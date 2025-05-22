@@ -15,6 +15,11 @@ const Index = () => {
     folders,
     selectedFolderId,
     
+    // Pagination
+    currentPage,
+    totalPages,
+    onPageChange,
+    
     // UI State
     showGenerator,
     sidebarOpen,
@@ -87,6 +92,9 @@ const Index = () => {
             handleDeleteVideo={handleDeleteVideo}
             handleMoveVideoToFolder={handleMoveVideoToFolder}
             videoGeneratorComponent={renderVideoGenerator}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
           />
         </div>
       </div>
