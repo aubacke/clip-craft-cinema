@@ -160,7 +160,7 @@ export const useVideoSubmit = ({
       await createVideoPrediction(parameters, modelId, modelVersion, signal);
       toast.success("Video generation started successfully");
       return true;
-    } catch (error) {
+    } catch (error: any) { // Typed as any to access properties safely
       // Handle aborted requests gracefully
       if (error.name === 'AbortError') {
         console.log("Video generation request was aborted");

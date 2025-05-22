@@ -17,7 +17,6 @@ import {
   getReferenceImageByFolderId
 } from '@/services/video/referenceImageService';
 import { toast } from 'sonner';
-import React from 'react';
 
 // Wrap local storage operations with error handling
 const safeLocalStorageOperation = <T,>(operation: () => T, fallback: T): T => {
@@ -217,5 +216,4 @@ export const useVideoManager = () => {
   };
 };
 
-// Export a memoized version for additional performance
-export const MemoizedVideoManager = React.memo(useVideoManager);
+// Removed the incorrect React.memo attempt for the hook itself

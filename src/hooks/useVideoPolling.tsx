@@ -4,7 +4,6 @@ import { Video } from '@/lib/types';
 import { checkVideoPredictionStatus } from '@/services/video/predictionService';
 import { toast } from 'sonner';
 import { saveVideoToLocalStorage } from '@/services/video/storageService';
-import React from 'react';
 
 // Helper function to truncate text - memoized outside the component
 const truncateText = (text: string, maxLength: number) => {
@@ -12,7 +11,8 @@ const truncateText = (text: string, maxLength: number) => {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 };
 
-export const useVideoPolling = React.memo((videos: Video[]) => {
+// Create a proper custom hook (not wrapped in React.memo)
+export const useVideoPolling = (videos: Video[]) => {
   const [updatedVideos, setUpdatedVideos] = useState<Video[]>(videos);
   
   // Update the type to accept NodeJS.Timeout instead of number
@@ -80,7 +80,7 @@ export const useVideoPolling = React.memo((videos: Video[]) => {
         return true; // Return true to indicate this video is complete
       }
       return false; // Return false to indicate this video is still processing
-    } catch (error) {
+    } catch (error: any) { // Explicitly type error as any for type safety
       // Handle aborted requests gracefully
       if (error.name === 'AbortError') {
         console.log(`Request for video ${video.id} was aborted`);
@@ -199,7 +199,7 @@ export const useVideoPolling = React.memo((videos: Video[]) => {
   }, [videos, cleanup, checkVideoStatus]);
   
   return updatedVideos;
-});
+};
 
 // Add display name for debugging
 useVideoPolling.displayName = 'useVideoPolling';
