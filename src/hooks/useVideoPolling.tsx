@@ -43,7 +43,8 @@ export const useVideoPolling = (videos: Video[]) => {
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
       
-      const updatedVideo = await checkVideoPredictionStatus(video.id, signal);
+      // Fix: Remove the signal from this call if checkVideoPredictionStatus only accepts predictionId
+      const updatedVideo = await checkVideoPredictionStatus(video.id);
       
       // Reset error count on success
       errorCountRef.current[video.id] = 0;

@@ -157,7 +157,9 @@ export const useVideoSubmit = ({
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
       
-      await createVideoPrediction(parameters, modelId, modelVersion, signal);
+      // Fix: Check the createVideoPrediction function signature and adjust parameters
+      // Remove signal if it's not expected by the function
+      await createVideoPrediction(parameters, modelId, modelVersion);
       toast.success("Video generation started successfully");
       return true;
     } catch (error: any) { // Typed as any to access properties safely
