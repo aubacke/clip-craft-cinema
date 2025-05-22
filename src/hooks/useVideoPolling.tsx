@@ -14,8 +14,8 @@ const truncateText = (text: string, maxLength: number) => {
 export const useVideoPolling = (videos: Video[]) => {
   const [updatedVideos, setUpdatedVideos] = useState<Video[]>(videos);
   
-  // Use refs to manage the interval and polling state
-  const intervalRef = useRef<number | null>(null);
+  // Update the type to accept NodeJS.Timeout instead of number
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef<boolean>(false);
   
   // Cleanup function to clear any active intervals
