@@ -57,8 +57,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               <SelectItem 
                 key={model.id} 
                 value={model.id}
+                title={model.description}
               >
-                {model.name}
+                <div>
+                  <div>{model.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{model.description}</div>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>

@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { VideoGenerationParameters } from '@/lib/types';
-import { VIDEO_MODELS } from '@/lib/constants';
+import { VIDEO_MODELS, DEFAULT_MODEL_ID } from '@/lib/constants';
 import { VideoGeneratorForm } from './VideoGeneratorForm';
 
 interface VideoGeneratorCardProps {
@@ -9,7 +10,7 @@ interface VideoGeneratorCardProps {
 }
 
 export const VideoGeneratorCard: React.FC<VideoGeneratorCardProps> = ({ onVideoCreated }) => {
-  const [selectedModelId, setSelectedModelId] = useState(VIDEO_MODELS[0].id);
+  const [selectedModelId, setSelectedModelId] = useState(DEFAULT_MODEL_ID || VIDEO_MODELS[0].id);
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<VideoGenerationParameters>({
     prompt: '',

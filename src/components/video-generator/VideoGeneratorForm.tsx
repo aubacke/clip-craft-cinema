@@ -1,12 +1,13 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
 import { ModelParameters } from './ModelParameters';
 import { PromptInput } from './PromptInput';
 import { VideoGenerationParameters } from '@/lib/types';
 import { useVideoSubmit } from '@/hooks/useVideoSubmit';
+import { Badge } from '@/components/ui/badge';
 
 interface VideoGeneratorFormProps {
   prompt: string;
@@ -34,6 +35,12 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
     parameters
   });
 
+  // Check if we're using a reference image
+  const hasReferenceImage = !!parameters.referenceImageId;
+  
+  // Form validation
+  const isFormValid = prompt.trim().length > 0 && selectedModelId;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <PromptInput
@@ -41,7 +48,16 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
         onPromptChange={onPromptChange}
         placeholder="Describe the video you want to generate..."
         disabled={isGenerating}
+        maxLength={1000}
       />
+      
+      {hasReferenceImage && (
+        <div className="bg-secondary/30 p-3 rounded-md flex items-center space-x-2">
+          <ImageIcon className="h-4 w-4" />
+          <span className="text-sm">Using reference image for generation</span>
+          <Badge variant="secondary" className="ml-auto">Reference image</Badge>
+        </div>
+      )}
       
       <ModelSelector
         selectedModelId={selectedModelId}
@@ -58,7 +74,7 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
       <Button
         type="submit"
         className="w-full"
-        disabled={isGenerating || !prompt.trim()}
+        disabled={isGenerating || !isFormValid}
       >
         {isGenerating ? (
           <>
