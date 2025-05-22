@@ -96,12 +96,6 @@ const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
             maxLength={1000}
             error={validationErrors.prompt}
           />
-          {validationErrors.prompt && (
-            <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
-              <AlertCircle className="h-4 w-4" />
-              <span>{validationErrors.prompt}</span>
-            </div>
-          )}
         </div>
         
         {/* Reference Image Info - only shown when used */}
@@ -125,12 +119,6 @@ const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
             disabled={isGenerating || isOffline}
             error={validationErrors.selectedModelId}
           />
-          {validationErrors.selectedModelId && (
-            <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
-              <AlertCircle className="h-4 w-4" />
-              <span>{validationErrors.selectedModelId}</span>
-            </div>
-          )}
         </div>
         
         {/* Model Parameters */}
@@ -144,14 +132,6 @@ const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
               errors={validationErrors}
               disabled={isGenerating || isOffline}
             />
-            {(validationErrors.cfg_scale || validationErrors.fps) && (
-              <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
-                <AlertCircle className="h-4 w-4" />
-                <span>
-                  {validationErrors.cfg_scale || validationErrors.fps}
-                </span>
-              </div>
-            )}
           </div>
         )}
         

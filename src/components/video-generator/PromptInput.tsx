@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles, Shuffle } from 'lucide-react';
+import { Sparkles, Shuffle, AlertCircle } from 'lucide-react';
 
 interface PromptInputProps {
   prompt: string;
@@ -10,6 +11,7 @@ interface PromptInputProps {
   placeholder?: string;
   disabled?: boolean;
   maxLength?: number;
+  error?: string; // Add error prop
 }
 
 // Categorized sample prompts
@@ -65,7 +67,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   onPromptChange,
   placeholder = "Describe the video you want to generate...",
   disabled = false,
-  maxLength = 1000
+  maxLength = 1000,
+  error
 }) => {
   // State for shuffled prompts
   const [shuffledPrompts, setShuffledPrompts] = useState<string[]>([]);
@@ -112,9 +115,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
         value={prompt}
         onChange={(e) => onPromptChange(e.target.value.slice(0, maxLength))}
         placeholder={placeholder}
-        className="min-h-[120px]"
+        className={`min-h-[120px] ${error ? 'border-destructive' : ''}`}
         disabled={disabled}
       />
+      
+      {error && (
+        <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
+          <AlertCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </div>
+      )}
       
       <div className="flex flex-col mt-2 space-y-2">
         <div className="text-xs text-muted-foreground text-right">

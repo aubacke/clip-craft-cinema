@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import { ReplicateModel } from '@/lib/replicateTypes';
 import { VIDEO_MODELS } from '@/lib/constants';
 
@@ -13,6 +13,7 @@ interface ModelSelectorProps {
   errorMessage?: string | null;
   models?: any[];
   selectedModel?: any | undefined;
+  error?: string; // Add error prop
 }
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
@@ -22,7 +23,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   isLoading = false,
   errorMessage = null,
   models = VIDEO_MODELS,
-  selectedModel = VIDEO_MODELS.find(m => m.id === selectedModelId)
+  selectedModel = VIDEO_MODELS.find(m => m.id === selectedModelId),
+  error
 }) => {
   return (
     <div className="mb-6">
@@ -49,7 +51,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
           onValueChange={onModelSelect}
           disabled={disabled}
         >
-          <SelectTrigger>
+          <SelectTrigger className={error ? 'border-destructive' : ''}>
             <SelectValue placeholder="Select a model" />
           </SelectTrigger>
           <SelectContent>
@@ -69,7 +71,14 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         </Select>
       )}
       
-      {selectedModel && (
+      {error && (
+        <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
+          <AlertCircle className="h-4 w-4" />
+          <span>{error}</span>
+        </div>
+      )}
+      
+      {selectedModel && !error && (
         <p className="text-xs text-muted-foreground mt-1">
           {selectedModel.description}
         </p>

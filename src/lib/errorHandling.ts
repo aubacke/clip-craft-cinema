@@ -1,5 +1,5 @@
 
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Component, ErrorInfo } from 'react';
 
@@ -224,8 +224,9 @@ export function validateInput(
 
 /**
  * Network status utility for checking online/offline status
+ * This is a custom hook that should be used in React components
  */
-export function useNetworkStatus() {
+export function useNetworkStatusHook() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   useEffect(() => {

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { VideoGenerationParameters } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -12,12 +13,16 @@ interface ModelParametersProps {
   selectedModelId: string;
   parameters: VideoGenerationParameters;
   onParameterChange: (parameters: VideoGenerationParameters) => void;
+  errors?: Record<string, string>; // Add errors prop
+  disabled?: boolean; // Add disabled prop
 }
 
 export const ModelParameters: React.FC<ModelParametersProps> = ({
   selectedModelId,
   parameters,
-  onParameterChange
+  onParameterChange,
+  errors = {}, // Default to empty object
+  disabled = false // Default to false
 }) => {
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
@@ -111,13 +116,15 @@ export const ModelParameters: React.FC<ModelParametersProps> = ({
         imagePreviewUrl={imagePreviewUrl}
         onImageUpload={handleImageUpload}
         onRemoveImage={handleRemoveImage}
+        errors={errors}
+        disabled={disabled}
       />
       
       {/* Advanced parameters */}
       {advancedParameters.length > 0 && (
         <Collapsible open={isAdvancedOpen} onOpenChange={setIsAdvancedOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="outline" type="button" className="w-full flex justify-between">
+            <Button variant="outline" type="button" className="w-full flex justify-between" disabled={disabled}>
               <span>Advanced Options</span>
               {isAdvancedOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
             </Button>
@@ -130,6 +137,8 @@ export const ModelParameters: React.FC<ModelParametersProps> = ({
               imagePreviewUrl={imagePreviewUrl}
               onImageUpload={handleImageUpload}
               onRemoveImage={handleRemoveImage}
+              errors={errors}
+              disabled={disabled}
             />
           </CollapsibleContent>
         </Collapsible>

@@ -1,16 +1,17 @@
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
-import { ModelParameterDefinition } from '@/lib/replicateTypes';
 import { ParameterInput } from './ParameterInput';
+import { ParameterDefinition } from './types';
 
 interface ParameterSectionProps {
-  parameters: ModelParameterDefinition[];
-  values: Record<string, any>;
+  parameters: ParameterDefinition[];
+  values: any;
   onParameterChange: (name: string, value: any) => void;
-  imagePreviewUrl: string | null;
-  onImageUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onRemoveImage: () => void;
+  imagePreviewUrl?: string | null;
+  onImageUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemoveImage?: () => void;
+  errors?: Record<string, string>; // Add errors prop
+  disabled?: boolean; // Add disabled prop
 }
 
 export const ParameterSection: React.FC<ParameterSectionProps> = ({
@@ -19,35 +20,26 @@ export const ParameterSection: React.FC<ParameterSectionProps> = ({
   onParameterChange,
   imagePreviewUrl,
   onImageUpload,
-  onRemoveImage
+  onRemoveImage,
+  errors = {}, // Default to empty object
+  disabled = false // Default to false
 }) => {
-  const getValue = (name: string) => {
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      return values[parent]?.[child];
-    }
-    return values[name];
-  };
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {parameters.map((param) => (
-        <div key={param.name} className="space-y-2">
-          <div className="flex justify-between">
-            <Label htmlFor={param.name}>{param.label}</Label>
-            {param.description && (
-              <span className="text-xs text-muted-foreground">{param.description}</span>
-            )}
-          </div>
-          <ParameterInput
-            param={param}
-            value={getValue(param.name)}
-            onChange={onParameterChange}
-            imagePreviewUrl={param.type === 'image' ? imagePreviewUrl : null}
-            onImageUpload={onImageUpload}
-            onRemoveImage={onRemoveImage}
-          />
-        </div>
+        <ParameterInput 
+          key={param.id}
+          parameter={param}
+          value={param.path?.includes('.') 
+            ? values[param.path.split('.')[0]]?.[param.path.split('.')[1]] 
+            : values[param.id]}
+          onChange={(value) => onParameterChange(param.path || param.id, value)}
+          imagePreviewUrl={param.type === 'image' ? imagePreviewUrl : undefined}
+          onImageUpload={param.type === 'image' ? onImageUpload : undefined}
+          onRemoveImage={param.type === 'image' ? onRemoveImage : undefined}
+          error={errors[param.id] || errors[param.path || '']} // Pass error if exists
+          disabled={disabled}
+        />
       ))}
     </div>
   );
