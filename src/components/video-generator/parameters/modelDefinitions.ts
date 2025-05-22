@@ -81,8 +81,8 @@ export const getModelParameters = (modelId: string): ParameterDefinition[] => {
     };
   });
 
-  // Return combined parameters
-  return [...commonParams, ...mappedModelParams];
+  // Return combined parameters with explicit type assertion
+  return [...commonParams, ...mappedModelParams] as ParameterDefinition[];
 };
 
 export { getCommonParameters };
