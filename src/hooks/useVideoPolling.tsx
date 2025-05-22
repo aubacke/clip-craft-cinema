@@ -17,6 +17,7 @@ export const useVideoPolling = (videos: Video[]) => {
   // Update the type to accept NodeJS.Timeout instead of number
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef<boolean>(false);
+  const errorCountRef = useRef<Record<string, number>>({});
   
   // Cleanup function to clear any active intervals
   const cleanup = () => {
@@ -62,6 +63,9 @@ export const useVideoPolling = (videos: Video[]) => {
           const video = currentProcessingVideos[i];
           const updatedVideo = await checkVideoPredictionStatus(video.id);
           
+          // Reset error count on success
+          errorCountRef.current[video.id] = 0;
+          
           if (updatedVideo.status !== 'processing') {
             // Preserve the reference image ID and folder ID when updating the video
             updatedVideo.referenceImageId = video.referenceImageId;
@@ -78,7 +82,19 @@ export const useVideoPolling = (videos: Video[]) => {
             if (updatedVideo.status === 'completed') {
               toast.success(`Video "${truncateText(video.prompt, 20)}" is ready!`);
             } else if (updatedVideo.status === 'failed') {
-              toast.error(`Video generation failed: ${updatedVideo.error || 'Unknown error'}`);
+              // Only show errors to the user if there's a meaningful error message
+              if (updatedVideo.error) {
+                // Format error message to be more user-friendly
+                let errorMessage = updatedVideo.error;
+                if (errorMessage.includes("API key")) {
+                  errorMessage = "API authentication failed. Please check your API key.";
+                } else if (errorMessage.includes("timeout")) {
+                  errorMessage = "The request timed out. Your video might take longer than expected.";
+                }
+                toast.error(`Video generation failed: ${errorMessage}`);
+              } else {
+                toast.error(`Video "${truncateText(video.prompt, 20)}" failed. Please try again.`);
+              }
             }
             
             // If this video is done, check if there are any processing videos left
@@ -92,7 +108,48 @@ export const useVideoPolling = (videos: Video[]) => {
             }
           }
         } catch (error) {
-          console.error(`Error checking video ${currentProcessingVideos[i].id} status:`, error);
+          // Get current error count for this video
+          const videoId = currentProcessingVideos[i].id;
+          errorCountRef.current[videoId] = (errorCountRef.current[videoId] || 0) + 1;
+          
+          console.error(`Error checking video ${videoId} status:`, error);
+          
+          // Only show error to user if it's repeated multiple times
+          if (errorCountRef.current[videoId] > 3) {
+            // Critical error after multiple failures - only show once
+            if (errorCountRef.current[videoId] === 4) {
+              const errorMessage = error.message && typeof error.message === 'string'
+                ? error.message
+                : 'Unknown error';
+              
+              // Format better error message based on error type
+              let userErrorMessage = "Error checking video status.";
+              if (errorMessage.includes("Authentication") || errorMessage.includes("401") || errorMessage.includes("403")) {
+                userErrorMessage = "Authentication error. Please check your API key.";
+              } else if (errorMessage.includes("network") || errorMessage.includes("connection")) {
+                userErrorMessage = "Network error. Please check your internet connection.";
+              } else if (errorMessage.includes("not found") || errorMessage.includes("404")) {
+                userErrorMessage = "Video tracking information not found.";
+              }
+              
+              toast.error(userErrorMessage);
+            }
+            
+            // If we've had too many errors for a single video, mark it as failed
+            if (errorCountRef.current[videoId] > 5) {
+              const failedVideo: Video = {
+                ...currentProcessingVideos[i],
+                status: 'failed',
+                error: "Lost connection to video generation service"
+              };
+              
+              setUpdatedVideos(prev => 
+                prev.map(v => v.id === videoId ? failedVideo : v)
+              );
+              
+              saveVideoToLocalStorage(failedVideo);
+            }
+          }
         }
         
         // Small delay between checking individual videos to avoid API rate limits

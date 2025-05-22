@@ -32,7 +32,15 @@ export async function callReplicateModel(
 
     if (error) {
       console.error("Function invoke error:", error);
-      throw new Error(`Error calling Replicate API: ${error.message || "Unknown error"}`);
+      
+      // More specific error messages based on error type
+      if (error.message.includes("timeout")) {
+        throw new Error("Connection timeout: The request took too long to complete. Please try again.");
+      } else if (error.message.includes("network")) {
+        throw new Error("Network error: Check your internet connection and try again.");
+      } else {
+        throw new Error(`Error calling Replicate API: ${error.message || "Unknown error"}`);
+      }
     }
 
     if (!data) {
@@ -48,14 +56,18 @@ export async function callReplicateModel(
     return data as ReplicateResponse;
   } catch (error) {
     console.error("Error calling Replicate API:", error);
+    
     // Provide a more user-friendly message based on error type
-    if (error.message.includes("403") || error.message.includes("401")) {
+    if (error.message.includes("403") || error.message.includes("401") || error.message.includes("Authentication")) {
       throw new Error("Authentication error: Please check your Replicate API key in the Supabase secrets.");
-    } else if (error.message.includes("429")) {
+    } else if (error.message.includes("429") || error.message.includes("Rate limit")) {
       throw new Error("Rate limit exceeded: You've reached the Replicate API rate limit. Please try again later.");
-    } else if (error.message.includes("500")) {
+    } else if (error.message.includes("500") || error.message.includes("Server error")) {
       throw new Error("Replicate server error: The service is experiencing issues. Please try again later.");
+    } else if (error.message.includes("Network") || error.message.includes("internet") || error.message.includes("Connection")) {
+      throw new Error("Connection error: Please check your internet connection and try again.");
     }
+    
     // Pass through the original error if it's already well-formatted
     throw error;
   }
@@ -93,7 +105,15 @@ export async function checkPredictionStatus(predictionId: string): Promise<Repli
 
     if (error) {
       console.error("Function invoke error:", error);
-      throw new Error(`Error checking prediction status: ${error.message || "Unknown error"}`);
+      
+      // More specific error messages based on error type
+      if (error.message.includes("timeout")) {
+        throw new Error("Connection timeout: The request took too long to complete. Please try again.");
+      } else if (error.message.includes("network")) {
+        throw new Error("Network error: Check your internet connection and try again.");
+      } else {
+        throw new Error(`Error checking prediction status: ${error.message || "Unknown error"}`);
+      }
     }
 
     if (!data) {
@@ -109,10 +129,16 @@ export async function checkPredictionStatus(predictionId: string): Promise<Repli
     return data as ReplicateResponse;
   } catch (error) {
     console.error("Error checking prediction status:", error);
+    
     // Provide more context based on error type
-    if (error.message.includes("not found") || error.message.includes("404")) {
+    if (error.message.includes("403") || error.message.includes("401") || error.message.includes("Authentication")) {
+      throw new Error("Authentication error: Please check your Replicate API key.");
+    } else if (error.message.includes("not found") || error.message.includes("404")) {
       throw new Error(`Prediction ID ${predictionId} not found. It may have been deleted or hasn't been created yet.`);
+    } else if (error.message.includes("429") || error.message.includes("Rate limit")) {
+      throw new Error("Rate limit exceeded: Please try again later.");
     }
+    
     throw error;
   }
 }

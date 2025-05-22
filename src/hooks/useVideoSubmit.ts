@@ -20,10 +20,49 @@ export const useVideoSubmit = ({
   parameters
 }: UseVideoSubmitProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  
+  const validateForm = (): boolean => {
+    // Clear previous validation error
+    setValidationError(null);
+    
+    // Validate prompt
+    if (!prompt || prompt.trim() === '') {
+      setValidationError('Please enter a description for your video');
+      toast.error('Please enter a description for your video');
+      return false;
+    }
+    
+    // Validate model selection
+    if (!selectedModelId) {
+      setValidationError('Please select a video model');
+      toast.error('Please select a video model');
+      return false;
+    }
+    
+    // Check if model exists
+    const selectedModel = VIDEO_MODELS.find(model => model.id === selectedModelId);
+    if (!selectedModel) {
+      setValidationError('Selected video model is not available');
+      toast.error('Selected video model is not available');
+      return false;
+    }
+    
+    // Check prompt length
+    if (prompt.length > 1000) {
+      setValidationError(`Prompt is too long (${prompt.length}/1000 characters)`);
+      toast.error(`Prompt is too long: ${prompt.length}/1000 characters`);
+      return false;
+    }
+    
+    return true;
+  };
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim()) return;
+    
+    // Validate form inputs
+    if (!validateForm()) return;
     
     try {
       setIsGenerating(true);
@@ -61,7 +100,20 @@ export const useVideoSubmit = ({
         toast.success("Video generation started successfully");
       } catch (error) {
         console.error("Error creating prediction:", error);
-        toast.error("Failed to start video generation. Please check your API key.");
+        
+        // More specific error messaging
+        if (error.message.includes("API key") || error.message.includes("Authentication")) {
+          toast.error("Authentication failed. Please check your API key");
+        } else if (error.message.includes("rate limit") || error.message.includes("429")) {
+          toast.error("Rate limit exceeded. Please try again later");
+        } else if (error.message.includes("prompt")) {
+          toast.error("Invalid prompt. Please provide a clearer description");
+        } else if (error.message.includes("network") || error.message.includes("connection")) {
+          toast.error("Network error. Please check your internet connection");
+        } else {
+          toast.error("Failed to start video generation. Please try again");
+        }
+        
         // We don't throw here as we've already shown the video in the UI
       }
     } catch (error) {
@@ -74,6 +126,7 @@ export const useVideoSubmit = ({
   
   return {
     isGenerating,
-    handleSubmit
+    handleSubmit,
+    validationError
   };
 };

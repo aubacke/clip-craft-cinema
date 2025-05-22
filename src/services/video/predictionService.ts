@@ -57,15 +57,21 @@ export const createVideoPrediction = async (
     console.error("Error creating video prediction:", error);
     
     // Provide more specific error messages based on the type of error
-    if (error.message.includes("API key")) {
+    if (error.message.includes("API key") || error.message.includes("Authentication")) {
       toast.error("Authentication error: Please check your Replicate API key");
       throw new Error("Please check your Replicate API key in Supabase Edge Function Secrets");
-    } else if (error.message.includes("rate limit")) {
+    } else if (error.message.includes("rate limit") || error.message.includes("429")) {
       toast.error("Rate limit exceeded. Please try again later.");
     } else if (error.message.includes("Invalid response") || error.message.includes("No data returned")) {
       toast.error("Communication error with Replicate. Please try again.");
     } else if (error.message.includes("prompt")) {
       toast.error("Please provide a valid prompt for video generation");
+    } else if (error.message.includes("Network") || error.message.includes("Connection")) {
+      toast.error("Connection error: Please check your internet connection");
+    } else if (error.message.includes("500") || error.message.includes("Server error")) {
+      toast.error("Server error: The video generation service is experiencing issues");
+    } else if (error.message.includes("image") || error.message.includes("upload")) {
+      toast.error(`Image error: ${error.message}`);
     } else {
       // For other errors, show a more user-friendly message but still log the details
       toast.error(`Video generation failed: ${error.message || "Unknown error"}`);
@@ -120,6 +126,17 @@ export const checkVideoPredictionStatus = async (predictionId: string): Promise<
         modelId: '',
         status: 'failed',
         error: `Prediction not found: ${error.message}`,
+        createdAt: new Date().toISOString(),
+      };
+    }
+    
+    if (error.message.includes("Authentication") || error.message.includes("401") || error.message.includes("403")) {
+      return {
+        id: predictionId,
+        prompt: 'Authentication error',
+        modelId: '',
+        status: 'failed',
+        error: "API key validation failed. Please check your Replicate API key.",
         createdAt: new Date().toISOString(),
       };
     }
