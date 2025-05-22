@@ -14,8 +14,6 @@ const Index = () => {
     videos,
     folders,
     selectedFolderId,
-    filteredVideos,
-    selectedFolderReferenceImage,
     
     // UI State
     showGenerator,
@@ -36,6 +34,7 @@ const Index = () => {
     // Stats
     processingVideosCount,
     completedVideosCount,
+    selectedFolderReferenceImage,
   } = useVideoManager();
   
   // Use a memoized component for VideoGenerator with suspense
