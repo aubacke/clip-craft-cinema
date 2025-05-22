@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,7 +59,7 @@ const VideoCard = React.memo<VideoCardProps>(({
         );
       case 'completed':
         return (
-          <Badge variant="default" className="flex items-center gap-1 absolute top-2 left-2">
+          <Badge variant="success" className="flex items-center gap-1 absolute top-2 left-2">
             <Play className="h-3 w-3" />
             <span>Ready</span>
           </Badge>
@@ -81,14 +82,18 @@ const VideoCard = React.memo<VideoCardProps>(({
   };
 
   const handleDownload = async () => {
+    // Only allow download for completed videos with a URL
     if (!video.url || video.status !== 'completed') return;
     
     try {
       setIsDownloading(true);
+      toast.loading('Starting download...', { id: 'download' });
+      
       const response = await fetch(video.url);
       
       if (!response.ok) {
-        throw new Error(`Failed to download: ${response.status}`);
+        const errorMessage = `Failed to download: ${response.status} ${response.statusText}`;
+        throw new Error(errorMessage);
       }
       
       const blob = await response.blob();
@@ -100,10 +105,20 @@ const VideoCard = React.memo<VideoCardProps>(({
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-      toast.success('Download completed!');
+      
+      toast.success('Download completed!', { id: 'download' });
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download video');
+      let errorMessage = 'Failed to download video';
+      
+      // More specific error messages based on error type
+      if (error instanceof TypeError && error.message.includes('network')) {
+        errorMessage = 'Network error while downloading. Please check your connection.';
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage, { id: 'download' });
     } finally {
       setIsDownloading(false);
     }
@@ -182,6 +197,7 @@ const VideoCard = React.memo<VideoCardProps>(({
                 className="h-8 w-8 mr-1 hover:bg-primary/20"
                 onClick={handleDownload}
                 disabled={isDownloading}
+                aria-label="Download video"
               >
                 {isDownloading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
