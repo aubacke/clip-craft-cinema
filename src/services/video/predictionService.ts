@@ -25,7 +25,7 @@ export const createVideoPrediction = async (
     }
     
     // Format the input parameters for the Replicate API
-    const formattedInput = formatter.formatInput(parameters);
+    const formattedInput = formatter.formatInputs(parameters);
     
     // Call the Replicate API
     await callReplicateModel(modelVersion, formattedInput);
@@ -74,10 +74,11 @@ export const checkVideoPredictionStatus = async (
       id: predictionId,
       status: response.status === 'succeeded' ? 'completed' : 
               response.status === 'failed' ? 'failed' : 'processing',
-      modelId: response.model?.split('/').pop() || '',
+      modelId: response.version?.split('/').pop() || '',
       prompt: response.input?.prompt || '',
       createdAt: response.created_at || new Date().toISOString(),
-      outputUrl: response.output?.[0] || null,
+      url: response.output?.[0] || undefined,
+      thumbnailUrl: undefined,
       error: response.error || undefined
     };
     

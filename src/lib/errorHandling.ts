@@ -226,9 +226,9 @@ export function validateInput(
  * Network status utility for checking online/offline status
  */
 export function useNetworkStatus() {
-  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   
-  React.useEffect(() => {
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     
