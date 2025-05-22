@@ -12,7 +12,7 @@ interface VideoGalleryProps {
   onMoveVideoToFolder: (videoId: string, folderId: string | null) => void;
 }
 
-const VideoGallery: React.FC<VideoGalleryProps> = ({
+const VideoGallery = React.memo<VideoGalleryProps>(({
   videos,
   folders,
   selectedFolderId,
@@ -47,6 +47,8 @@ const VideoGallery: React.FC<VideoGalleryProps> = ({
       ))}
     </div>
   );
-};
+});
+
+VideoGallery.displayName = 'VideoGallery';
 
 export default VideoGallery;

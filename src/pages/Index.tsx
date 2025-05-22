@@ -1,9 +1,12 @@
 
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import Sidebar from '@/components/Sidebar';
 import { PageHeader } from '@/components/video/PageHeader';
 import { MainContent } from '@/components/video/MainContent';
 import { useVideoManager } from '@/hooks/useVideoManager';
+
+// Lazy load the VideoGenerator component
+const LazyVideoGenerator = lazy(() => import('@/components/VideoGenerator'));
 
 const Index = () => {
   const {
@@ -34,6 +37,13 @@ const Index = () => {
     processingVideosCount,
     completedVideosCount,
   } = useVideoManager();
+  
+  // Use a memoized component for VideoGenerator with suspense
+  const renderVideoGenerator = showGenerator ? (
+    <Suspense fallback={<div className="p-4 text-center">Loading video generator...</div>}>
+      <LazyVideoGenerator onVideoCreated={handleVideoCreated} />
+    </Suspense>
+  ) : null;
   
   return (
     <div className="flex min-h-screen bg-background">
@@ -69,6 +79,7 @@ const Index = () => {
             selectedFolderId={selectedFolderId}
             handleDeleteVideo={handleDeleteVideo}
             handleMoveVideoToFolder={handleMoveVideoToFolder}
+            videoGeneratorComponent={renderVideoGenerator}
           />
         </div>
       </div>

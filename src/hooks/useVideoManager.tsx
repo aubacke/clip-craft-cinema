@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Video, Folder } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { useVideoPolling } from '@/hooks/useVideoPolling';
@@ -48,36 +48,51 @@ export const useVideoManager = () => {
     setVideos(updatedVideos);
   }, [updatedVideos]);
   
-  // Computed properties
-  const processingVideosCount = videos.filter(video => video.status === 'processing').length;
-  const completedVideosCount = videos.filter(video => video.status === 'completed').length;
-  const failedVideosCount = videos.filter(video => video.status === 'failed').length;
+  // Computed properties with useMemo
+  const processingVideosCount = useMemo(() => 
+    videos.filter(video => video.status === 'processing').length, 
+    [videos]
+  );
+  
+  const completedVideosCount = useMemo(() => 
+    videos.filter(video => video.status === 'completed').length,
+    [videos]
+  );
+  
+  const failedVideosCount = useMemo(() => 
+    videos.filter(video => video.status === 'failed').length,
+    [videos]
+  );
   
   // Get the current folder's reference image if applicable
-  const selectedFolderReferenceImage = selectedFolderId 
-    ? getReferenceImageByFolderId(selectedFolderId)
-    : null;
+  const selectedFolderReferenceImage = useMemo(() => 
+    selectedFolderId ? getReferenceImageByFolderId(selectedFolderId) : null,
+    [selectedFolderId]
+  );
   
   // Filtered videos based on selected folder
-  const filteredVideos = selectedFolderId
-    ? videos.filter(video => video.folderId === selectedFolderId)
-    : videos.filter(video => !video.folderId);
+  const filteredVideos = useMemo(() => 
+    selectedFolderId
+      ? videos.filter(video => video.folderId === selectedFolderId)
+      : videos.filter(video => !video.folderId),
+    [videos, selectedFolderId]
+  );
   
-  // Handler functions
-  const handleVideoCreated = (video: Video) => {
+  // Handler functions with useCallback
+  const handleVideoCreated = useCallback((video: Video) => {
     const newVideos = [...videos, video];
     setVideos(newVideos);
     saveVideoToLocalStorage(video);
     setUiState(prev => ({ ...prev, showGenerator: false }));
-  };
+  }, [videos]);
   
-  const handleDeleteVideo = (id: string) => {
+  const handleDeleteVideo = useCallback((id: string) => {
     setVideos(prev => prev.filter(v => v.id !== id));
     deleteVideoFromLocalStorage(id);
     toast.success("Video deleted");
-  };
+  }, []);
   
-  const handleCreateFolder = (name: string) => {
+  const handleCreateFolder = useCallback((name: string) => {
     const newFolder = {
       id: uuidv4(),
       name,
@@ -87,9 +102,9 @@ export const useVideoManager = () => {
     setFolders(prev => [...prev, newFolder]);
     saveFolderToLocalStorage(newFolder);
     toast.success(`Folder "${name}" created`);
-  };
+  }, []);
   
-  const handleMoveVideoToFolder = (videoId: string, folderId: string | null) => {
+  const handleMoveVideoToFolder = useCallback((videoId: string, folderId: string | null) => {
     setVideos(prev => 
       prev.map(v => 
         v.id === videoId ? { ...v, folderId: folderId || undefined } : v
@@ -103,29 +118,29 @@ export const useVideoManager = () => {
       : "All Videos";
     
     toast.success(`Video moved to ${folderName}`);
-  };
+  }, [folders]);
   
-  // UI state handlers
-  const toggleSidebar = () => {
+  // UI state handlers with useCallback
+  const toggleSidebar = useCallback(() => {
     setUiState(prev => ({ ...prev, sidebarOpen: !prev.sidebarOpen }));
-  };
+  }, []);
   
-  const closeSidebar = () => {
+  const closeSidebar = useCallback(() => {
     setUiState(prev => ({ ...prev, sidebarOpen: false }));
-  };
+  }, []);
   
-  const showGeneratorPanel = () => {
+  const showGeneratorPanel = useCallback(() => {
     setUiState(prev => ({ ...prev, showGenerator: true }));
     closeSidebar();
-  };
+  }, [closeSidebar]);
   
-  const hideGeneratorPanel = () => {
+  const hideGeneratorPanel = useCallback(() => {
     setUiState(prev => ({ ...prev, showGenerator: false }));
-  };
+  }, []);
   
-  const toggleGeneratorPanel = () => {
+  const toggleGeneratorPanel = useCallback(() => {
     setUiState(prev => ({ ...prev, showGenerator: !prev.showGenerator }));
-  };
+  }, []);
   
   return {
     // Data

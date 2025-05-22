@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Video, VideoGenerationParameters } from '@/lib/types';
 import { createVideoPrediction } from '@/services/video/predictionService';
@@ -22,7 +22,7 @@ export const useVideoSubmit = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   
-  const validateForm = (): boolean => {
+  const validateForm = useCallback((): boolean => {
     // Clear previous validation error
     setValidationError(null);
     
@@ -56,9 +56,9 @@ export const useVideoSubmit = ({
     }
     
     return true;
-  };
+  }, [prompt, selectedModelId]);
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form inputs
@@ -122,7 +122,7 @@ export const useVideoSubmit = ({
     } finally {
       setIsGenerating(false);
     }
-  };
+  }, [validateForm, prompt, selectedModelId, parameters, onVideoCreated]);
   
   return {
     isGenerating,

@@ -10,7 +10,7 @@ interface StatusIndicatorProps {
   className?: string;
 }
 
-export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
+export const StatusIndicator = React.memo<StatusIndicatorProps>(({
   processingCount,
   completedCount,
   className
@@ -37,4 +37,6 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = ({
       )}
     </div>
   );
-};
+});
+
+StatusIndicator.displayName = 'StatusIndicator';

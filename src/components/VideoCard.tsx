@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +32,7 @@ interface VideoCardProps {
   folders: FolderType[];
 }
 
-const VideoCard: React.FC<VideoCardProps> = ({
+const VideoCard = React.memo<VideoCardProps>(({
   video,
   onDelete,
   onMoveToFolder,
@@ -238,6 +237,8 @@ const VideoCard: React.FC<VideoCardProps> = ({
       </CardFooter>
     </Card>
   );
-};
+});
+
+VideoCard.displayName = 'VideoCard';
 
 export default VideoCard;

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Image as ImageIcon } from 'lucide-react';
 import { ModelSelector } from './ModelSelector';
@@ -19,7 +19,7 @@ interface VideoGeneratorFormProps {
   onVideoCreated: (video: any) => void;
 }
 
-export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
+export const VideoGeneratorForm = React.memo<VideoGeneratorFormProps>(({
   prompt,
   onPromptChange,
   selectedModelId,
@@ -87,4 +87,8 @@ export const VideoGeneratorForm: React.FC<VideoGeneratorFormProps> = ({
       </Button>
     </form>
   );
-};
+});
+
+VideoGeneratorForm.displayName = 'VideoGeneratorForm';
+
+export { VideoGeneratorForm };

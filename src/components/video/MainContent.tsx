@@ -1,6 +1,5 @@
 
 import React from 'react';
-import VideoGenerator from '@/components/VideoGenerator';
 import VideoGallery from '@/components/VideoGallery';
 import { Button } from '@/components/ui/button';
 import { ReferenceImageDisplay } from './ReferenceImageDisplay';
@@ -16,9 +15,10 @@ interface MainContentProps {
   selectedFolderId: string | null;
   handleDeleteVideo: (id: string) => void;
   handleMoveVideoToFolder: (videoId: string, folderId: string | null) => void;
+  videoGeneratorComponent?: React.ReactNode; // For lazy-loaded component
 }
 
-export const MainContent: React.FC<MainContentProps> = ({
+export const MainContent = React.memo<MainContentProps>(({
   selectedFolderReferenceImage,
   showGenerator,
   setShowGenerator,
@@ -27,7 +27,8 @@ export const MainContent: React.FC<MainContentProps> = ({
   folders,
   selectedFolderId,
   handleDeleteVideo,
-  handleMoveVideoToFolder
+  handleMoveVideoToFolder,
+  videoGeneratorComponent
 }) => {
   // Get videos filtered by the selected folder
   const filteredVideos = selectedFolderId
@@ -40,9 +41,7 @@ export const MainContent: React.FC<MainContentProps> = ({
       
       {showGenerator ? (
         <div className="max-w-2xl mx-auto mb-8">
-          <VideoGenerator 
-            onVideoCreated={handleVideoCreated}
-          />
+          {videoGeneratorComponent}
         </div>
       ) : (
         <div className="mb-6">
@@ -61,4 +60,8 @@ export const MainContent: React.FC<MainContentProps> = ({
       />
     </>
   );
-}
+});
+
+MainContent.displayName = 'MainContent';
+
+export { MainContent };

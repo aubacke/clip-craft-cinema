@@ -45,8 +45,14 @@ function Badge({ className, variant, interactive, ...props }: BadgeProps) {
     <div 
       className={cn(badgeVariants({ variant, interactive }), className)} 
       {...props} 
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
     />
   )
 }
 
-export { Badge, badgeVariants }
+// Memoize Badge component for better performance
+const MemoizedBadge = React.memo(Badge);
+
+// Export both the memoized and non-memoized versions
+export { MemoizedBadge as Badge, badgeVariants }
