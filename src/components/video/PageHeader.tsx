@@ -13,6 +13,8 @@ interface PageHeaderProps {
   showGenerator: boolean;
   processingVideosCount?: number;
   completedVideosCount?: number;
+  onClickProcessing?: () => void;
+  onClickCompleted?: () => void;
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -22,7 +24,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   onCreateNewVideo,
   showGenerator,
   processingVideosCount = 0,
-  completedVideosCount = 0
+  completedVideosCount = 0,
+  onClickProcessing,
+  onClickCompleted
 }) => {
   return (
     <div className="flex justify-between items-center mb-6">
@@ -47,6 +51,8 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
         <StatusIndicator 
           processingCount={processingVideosCount}
           completedCount={completedVideosCount}
+          onClickProcessing={onClickProcessing}
+          onClickCompleted={onClickCompleted}
         />
         
         {!showGenerator && (

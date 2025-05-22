@@ -45,6 +45,13 @@ const Index = () => {
     </Suspense>
   ) : null;
   
+  // Handler for navigating to processing videos
+  const handleNavigateToProcessing = () => {
+    // This would be implemented to filter/show processing videos
+    console.log("Navigate to processing videos");
+    // Could implement: setSelectedFilter('processing');
+  };
+  
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
@@ -67,6 +74,7 @@ const Index = () => {
             showGenerator={showGenerator}
             processingVideosCount={processingVideosCount}
             completedVideosCount={completedVideosCount}
+            onClickProcessing={handleNavigateToProcessing}
           />
           
           <MainContent
