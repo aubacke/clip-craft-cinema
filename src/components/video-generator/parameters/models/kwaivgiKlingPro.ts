@@ -1,14 +1,6 @@
-
 import { ModelParameterDefinition } from '@/lib/replicateTypes';
 
 export const kwaivgiKlingProParameters: ModelParameterDefinition[] = [
-  {
-    name: 'prompt',
-    type: 'text',
-    label: 'Prompt',
-    description: 'Text prompt for video generation',
-    isAdvanced: false
-  },
   {
     name: 'negative_prompt',
     type: 'text',
