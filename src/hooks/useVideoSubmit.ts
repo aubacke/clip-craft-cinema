@@ -13,6 +13,9 @@ interface UseVideoSubmitProps {
   parameters: VideoGenerationParameters;
 }
 
+const MAX_RETRIES = 2;
+const RETRY_DELAY = 1500; // 1.5 seconds
+
 export const useVideoSubmit = ({
   onVideoCreated,
   selectedModelId,
@@ -58,6 +61,67 @@ export const useVideoSubmit = ({
     return true;
   }, [prompt, selectedModelId]);
   
+  // Helper function to attempt prediction with retries
+  const attemptPrediction = useCallback(async (
+    parameters: VideoGenerationParameters,
+    modelId: string,
+    modelVersion: string,
+    retriesLeft: number = MAX_RETRIES
+  ) => {
+    try {
+      await createVideoPrediction(parameters, modelId, modelVersion);
+      toast.success("Video generation started successfully");
+      return true;
+    } catch (error) {
+      console.error("Error creating prediction:", error);
+      
+      // Determine if this error is retryable
+      const isRetryable = 
+        error.message.includes("429") || // Rate limit
+        error.message.includes("500") || // Server error
+        error.message.includes("502") || // Bad gateway
+        error.message.includes("503") || // Service unavailable
+        error.message.includes("504") || // Gateway timeout
+        error.message.includes("non-2xx") || // Generic non-2xx
+        error.message.includes("timeout") || // Connection timeout
+        error.message.includes("network"); // Network error
+      
+      // If we have retries left and it's a retryable error, retry after delay
+      if (retriesLeft > 0 && isRetryable) {
+        console.log(`Retrying prediction... (${MAX_RETRIES - retriesLeft + 1}/${MAX_RETRIES})`);
+        
+        // Show retry toast
+        toast.info(`Connection issue detected. Retrying... (${MAX_RETRIES - retriesLeft + 1}/${MAX_RETRIES})`);
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
+        return attemptPrediction(parameters, modelId, modelVersion, retriesLeft - 1);
+      }
+      
+      // If we're out of retries or it's not a retryable error, show appropriate message
+      // More specific error messaging
+      if (error.message.includes("API key") || error.message.includes("Authentication") || 
+          error.message.includes("401") || error.message.includes("403")) {
+        toast.error("Authentication failed. Please check your API key");
+      } else if (error.message.includes("rate limit") || error.message.includes("429")) {
+        toast.error("Rate limit exceeded. Please try again later");
+      } else if (error.message.includes("prompt")) {
+        toast.error("Invalid prompt. Please provide a clearer description");
+      } else if (error.message.includes("network") || error.message.includes("connection")) {
+        toast.error("Network error. Please check your internet connection");
+      } else if (error.message.includes("500") || error.message.includes("502") || 
+                error.message.includes("503") || error.message.includes("504")) {
+        toast.error("Server error. The service might be temporarily unavailable");
+      } else if (error.message.includes("non-2xx")) {
+        toast.error("Service temporarily unavailable. Please try again later");
+      } else {
+        toast.error("Failed to start video generation. Please try again");
+      }
+      
+      return false;
+    }
+  }, []);
+  
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -94,35 +158,15 @@ export const useVideoSubmit = ({
       // First notify the user that a video is being created (optimistic UI)
       onVideoCreated(newVideo);
       
-      // Start prediction and handle errors properly
-      try {
-        await createVideoPrediction(updatedParameters, selectedModelId, selectedModel.version);
-        toast.success("Video generation started successfully");
-      } catch (error) {
-        console.error("Error creating prediction:", error);
-        
-        // More specific error messaging
-        if (error.message.includes("API key") || error.message.includes("Authentication")) {
-          toast.error("Authentication failed. Please check your API key");
-        } else if (error.message.includes("rate limit") || error.message.includes("429")) {
-          toast.error("Rate limit exceeded. Please try again later");
-        } else if (error.message.includes("prompt")) {
-          toast.error("Invalid prompt. Please provide a clearer description");
-        } else if (error.message.includes("network") || error.message.includes("connection")) {
-          toast.error("Network error. Please check your internet connection");
-        } else {
-          toast.error("Failed to start video generation. Please try again");
-        }
-        
-        // We don't throw here as we've already shown the video in the UI
-      }
+      // Attempt prediction with retry logic
+      await attemptPrediction(updatedParameters, selectedModelId, selectedModel.version);
     } catch (error) {
       console.error("Error generating video:", error);
       toast.error("Error starting video generation");
     } finally {
       setIsGenerating(false);
     }
-  }, [validateForm, prompt, selectedModelId, parameters, onVideoCreated]);
+  }, [validateForm, prompt, selectedModelId, parameters, onVideoCreated, attemptPrediction]);
   
   return {
     isGenerating,
